@@ -208,10 +208,6 @@ This is an MVP build. Contributions welcome for:
 - UI/UX enhancements
 - Documentation improvements
 
-## License
-
-[Your License Here]
-
 ## Acknowledgments
 
 Built with inspiration from the idea that learning happens best through dialogue, questions, and pacing - not through passive consumption.
