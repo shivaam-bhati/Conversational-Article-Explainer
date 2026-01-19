@@ -1,5 +1,5 @@
-import { createContext } from "@my-better-t-app/api/context";
-import { appRouter } from "@my-better-t-app/api/routers/index";
+import { createContext } from "@conversational-article-explainer/api/context";
+import { appRouter } from "@conversational-article-explainer/api/routers/index";
 import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
 import { NextRequest } from "next/server";
 

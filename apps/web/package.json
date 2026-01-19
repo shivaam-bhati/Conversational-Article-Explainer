@@ -9,8 +9,8 @@
   },
   "dependencies": {
     "@base-ui/react": "^1.0.0",
-    "@my-better-t-app/api": "workspace:*",
-    "@my-better-t-app/env": "workspace:*",
+    "@conversational-article-explainer/api": "workspace:*",
+    "@conversational-article-explainer/env": "workspace:*",
     "@tanstack/react-form": "^1.27.3",
     "@tanstack/react-query": "^5.90.12",
     "@trpc/client": "catalog:",
@@ -35,7 +35,7 @@
     "openai": "^4.67.3"
   },
   "devDependencies": {
-    "@my-better-t-app/config": "workspace:*",
+    "@conversational-article-explainer/config": "workspace:*",
     "@tailwindcss/postcss": "^4.1.10",
     "@tanstack/react-query-devtools": "^5.91.1",
     "@types/node": "^20",

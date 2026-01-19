@@ -1,4 +1,4 @@
-import type { AppRouter } from "@my-better-t-app/api/routers/index";
+import type { AppRouter } from "@conversational-article-explainer/api/routers/index";
 
 import { QueryCache, QueryClient } from "@tanstack/react-query";
 import { createTRPCClient, httpBatchLink } from "@trpc/client";

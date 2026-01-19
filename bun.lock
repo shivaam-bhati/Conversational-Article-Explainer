@@ -5,12 +5,12 @@
     "": {
       "name": "my-better-t-app",
       "dependencies": {
-        "@my-better-t-app/env": "workspace:*",
+        "@conversational-article-explainer/env": "workspace:*",
         "dotenv": "catalog:",
         "zod": "catalog:",
       },
       "devDependencies": {
-        "@my-better-t-app/config": "workspace:*",
+        "@conversational-article-explainer/config": "workspace:*",
         "@types/node": "^22.13.14",
         "oxfmt": "^0.19.0",
         "oxlint": "^1.34.0",
@@ -23,9 +23,9 @@
       "version": "0.1.0",
       "dependencies": {
         "@base-ui/react": "^1.0.0",
+        "@conversational-article-explainer/api": "workspace:*",
+        "@conversational-article-explainer/env": "workspace:*",
         "@mozilla/readability": "^0.4.4",
-        "@my-better-t-app/api": "workspace:*",
-        "@my-better-t-app/env": "workspace:*",
         "@tanstack/react-form": "^1.27.3",
         "@tanstack/react-query": "^5.90.12",
         "@trpc/client": "catalog:",
@@ -49,7 +49,7 @@
         "zod": "catalog:",
       },
       "devDependencies": {
-        "@my-better-t-app/config": "workspace:*",
+        "@conversational-article-explainer/config": "workspace:*",
         "@tailwindcss/postcss": "^4.1.10",
         "@tanstack/react-query-devtools": "^5.91.1",
         "@types/node": "^20",
@@ -60,11 +60,11 @@
       },
     },
     "packages/api": {
-      "name": "@my-better-t-app/api",
+      "name": "@conversational-article-explainer/api",
       "dependencies": {
+        "@conversational-article-explainer/db": "workspace:*",
+        "@conversational-article-explainer/env": "workspace:*",
         "@mozilla/readability": "^0.4.4",
-        "@my-better-t-app/db": "workspace:*",
-        "@my-better-t-app/env": "workspace:*",
         "@trpc/client": "catalog:",
         "@trpc/server": "catalog:",
         "dotenv": "catalog:",
@@ -74,18 +74,18 @@
         "zod": "catalog:",
       },
       "devDependencies": {
-        "@my-better-t-app/config": "workspace:*",
+        "@conversational-article-explainer/config": "workspace:*",
         "typescript": "catalog:",
       },
     },
     "packages/config": {
-      "name": "@my-better-t-app/config",
+      "name": "@conversational-article-explainer/config",
       "version": "0.0.0",
     },
     "packages/db": {
-      "name": "@my-better-t-app/db",
+      "name": "@conversational-article-explainer/db",
       "dependencies": {
-        "@my-better-t-app/env": "workspace:*",
+        "@conversational-article-explainer/env": "workspace:*",
         "@neondatabase/serverless": "^1.0.2",
         "dotenv": "catalog:",
         "drizzle-orm": "^0.45.1",
@@ -93,14 +93,14 @@
         "zod": "catalog:",
       },
       "devDependencies": {
-        "@my-better-t-app/config": "workspace:*",
+        "@conversational-article-explainer/config": "workspace:*",
         "@types/ws": "^8.18.1",
         "drizzle-kit": "^0.31.8",
         "typescript": "catalog:",
       },
     },
     "packages/env": {
-      "name": "@my-better-t-app/env",
+      "name": "@conversational-article-explainer/env",
       "version": "0.0.0",
       "dependencies": {
         "@t3-oss/env-core": "^0.13.1",
@@ -109,7 +109,7 @@
         "zod": "catalog:",
       },
       "devDependencies": {
-        "@my-better-t-app/config": "workspace:*",
+        "@conversational-article-explainer/config": "workspace:*",
         "@types/node": "^22.13.14",
         "typescript": "catalog:",
       },
@@ -191,6 +191,14 @@
     "@base-ui/react": ["@base-ui/react@1.1.0", "", { "dependencies": { "@babel/runtime": "^7.28.4", "@base-ui/utils": "0.2.4", "@floating-ui/react-dom": "^2.1.6", "@floating-ui/utils": "^0.2.10", "reselect": "^5.1.1", "tabbable": "^6.4.0", "use-sync-external-store": "^1.6.0" }, "peerDependencies": { "@types/react": "^17 || ^18 || ^19", "react": "^17 || ^18 || ^19", "react-dom": "^17 || ^18 || ^19" }, "optionalPeers": ["@types/react"] }, "sha512-ikcJRNj1mOiF2HZ5jQHrXoVoHcNHdBU5ejJljcBl+VTLoYXR6FidjTN86GjO6hyshi6TZFuNvv0dEOgaOFv6Lw=="],
 
     "@base-ui/utils": ["@base-ui/utils@0.2.4", "", { "dependencies": { "@babel/runtime": "^7.28.4", "@floating-ui/utils": "^0.2.10", "reselect": "^5.1.1", "use-sync-external-store": "^1.6.0" }, "peerDependencies": { "@types/react": "^17 || ^18 || ^19", "react": "^17 || ^18 || ^19", "react-dom": "^17 || ^18 || ^19" }, "optionalPeers": ["@types/react"] }, "sha512-smZwpMhjO29v+jrZusBSc5T+IJ3vBb9cjIiBjtKcvWmRj9Z4DWGVR3efr1eHR56/bqY5a4qyY9ElkOY5ljo3ng=="],
+
+    "@conversational-article-explainer/api": ["@conversational-article-explainer/api@workspace:packages/api"],
+
+    "@conversational-article-explainer/config": ["@conversational-article-explainer/config@workspace:packages/config"],
+
+    "@conversational-article-explainer/db": ["@conversational-article-explainer/db@workspace:packages/db"],
+
+    "@conversational-article-explainer/env": ["@conversational-article-explainer/env@workspace:packages/env"],
 
     "@csstools/color-helpers": ["@csstools/color-helpers@5.1.0", "", {}, "sha512-S11EXWJyy0Mz5SYvRmY8nJYTFFd1LCNV+7cXyAgQtOOuzb4EsgfqDufL+9esx72/eLhsRdGZwaldu/h+E4t4BA=="],
 
@@ -355,14 +363,6 @@
     "@mozilla/readability": ["@mozilla/readability@0.4.4", "", {}, "sha512-MCgZyANpJ6msfvVMi6+A0UAsvZj//4OHREYUB9f2087uXHVoU+H+SWhuihvb1beKpM323bReQPRio0WNk2+V6g=="],
 
     "@mswjs/interceptors": ["@mswjs/interceptors@0.40.0", "", { "dependencies": { "@open-draft/deferred-promise": "^2.2.0", "@open-draft/logger": "^0.3.0", "@open-draft/until": "^2.0.0", "is-node-process": "^1.2.0", "outvariant": "^1.4.3", "strict-event-emitter": "^0.5.1" } }, "sha512-EFd6cVbHsgLa6wa4RljGj6Wk75qoHxUSyc5asLyyPSyuhIcdS2Q3Phw6ImS1q+CkALthJRShiYfKANcQMuMqsQ=="],
-
-    "@my-better-t-app/api": ["@my-better-t-app/api@workspace:packages/api"],
-
-    "@my-better-t-app/config": ["@my-better-t-app/config@workspace:packages/config"],
-
-    "@my-better-t-app/db": ["@my-better-t-app/db@workspace:packages/db"],
-
-    "@my-better-t-app/env": ["@my-better-t-app/env@workspace:packages/env"],
 
     "@neondatabase/serverless": ["@neondatabase/serverless@1.0.2", "", { "dependencies": { "@types/node": "^22.15.30", "@types/pg": "^8.8.0" } }, "sha512-I5sbpSIAHiB+b6UttofhrN/UJXII+4tZPAq1qugzwCwLIL8EZLV7F/JyHUrEIiGgQpEXzpnjlJ+zwcEhheGvCw=="],
 

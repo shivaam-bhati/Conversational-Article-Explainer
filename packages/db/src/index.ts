@@ -1,4 +1,4 @@
-import { env } from "@my-better-t-app/env/server";
+import { env } from "@conversational-article-explainer/env/server";
 import { neon, neonConfig } from "@neondatabase/serverless";
 import { drizzle } from "drizzle-orm/neon-http";
 import ws from "ws";

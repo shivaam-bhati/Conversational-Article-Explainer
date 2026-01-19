@@ -77,7 +77,7 @@ The core objective is **understanding**, not speed or compression.
 1. Clone the repository:
 ```bash
 git clone <repository-url>
-cd my-better-t-app
+cd conversational-article-explainer
 ```
 
 2. Install dependencies:
@@ -130,7 +130,7 @@ The app will be available at `http://localhost:3001`
 ## Project Structure
 
 ```
-my-better-t-app/
+conversational-article-explainer/
 ├── apps/
 │   └── web/                 # Next.js frontend application
 │       ├── src/

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import OpenAI from "openai";
 import { publicProcedure, router } from "../index";
-import { env } from "@my-better-t-app/env/server";
+import { env } from "@conversational-article-explainer/env/server";
 
 // Use OpenRouter if API key is provided, otherwise fall back to OpenAI
 const apiKey = env.OPENROUTER_API_KEY || env.OPENAI_API_KEY;
