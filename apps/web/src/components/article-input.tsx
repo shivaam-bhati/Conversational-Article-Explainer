@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Card } from "@/components/ui/card";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { trpcClient } from "@/utils/trpc";
 import { useMutation } from "@tanstack/react-query";
-import { Globe, User } from "lucide-react";
+import { Globe, User, FileText, Link2, Loader2 } from "lucide-react";
 
 const LANGUAGES = [
   { code: "en", name: "English" },
@@ -46,12 +46,8 @@ export function ArticleInput({ onArticleParsed }: ArticleInputProps) {
   });
 
   const handleParse = async () => {
-    if (inputMode === "text" && !text.trim()) {
-      return;
-    }
-    if (inputMode === "url" && !url.trim()) {
-      return;
-    }
+    if (inputMode === "text" && !text.trim()) return;
+    if (inputMode === "url" && !url.trim()) return;
 
     setIsParsing(true);
     try {
@@ -65,90 +61,60 @@ export function ArticleInput({ onArticleParsed }: ArticleInputProps) {
       );
     } catch (error) {
       console.error("Failed to parse article:", error);
-      alert("Failed to parse article. Please try again.");
+      toast.error("Couldn’t parse article. Check the URL or text and try again.");
     } finally {
       setIsParsing(false);
     }
   };
 
   const selectedLanguageName =
-    LANGUAGES.find((lang) => lang.code === selectedLanguage)?.name || "English";
+    LANGUAGES.find((l) => l.code === selectedLanguage)?.name ?? "English";
+  const canSubmit = inputMode === "text" ? !!text.trim() : !!url.trim();
 
   return (
-    <Card className="p-6 space-y-4">
-      <div className="space-y-2">
-        <h2 className="text-lg font-semibold">Article Input</h2>
-        <p className="text-sm text-muted-foreground">
-          Paste your article text or provide a URL to get started
-        </p>
-      </div>
-
-      {/* Language Selector */}
-      <div className="flex items-center gap-2">
-        <Globe className="h-4 w-4 text-muted-foreground" />
-        <span className="text-sm text-muted-foreground">Language:</span>
-        <DropdownMenu>
-          <DropdownMenuTrigger render={<Button variant="outline" size="sm" />}>
-            {selectedLanguageName}
-          </DropdownMenuTrigger>
-          <DropdownMenuContent>
-            {LANGUAGES.map((lang) => (
-              <DropdownMenuItem
-                key={lang.code}
-                onClick={() => setSelectedLanguage(lang.code)}
-              >
-                {lang.name}
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
-
-      {/* Author Name Input (Optional) */}
-      <div className="space-y-2">
-        <div className="flex items-center gap-2">
-          <User className="h-4 w-4 text-muted-foreground" />
-          <label className="text-sm text-muted-foreground">
-            Author/Mentor (Optional):
-          </label>
-        </div>
-        <Input
-          type="text"
-          placeholder="e.g., Elon Musk, Tim Ferriss, Naval Ravikant"
-          value={authorName}
-          onChange={(e) => setAuthorName(e.target.value)}
-          className="w-full"
-        />
-        <p className="text-xs text-muted-foreground">
-          Enter an author name to get explanations in their unique speaking style
-        </p>
-      </div>
-
-      {/* Input Mode Toggle */}
-      <div className="flex gap-2">
-        <Button
-          variant={inputMode === "text" ? "default" : "outline"}
-          size="sm"
+    <div className="accent-stripe card-lift w-full rounded-lg border border-border bg-card p-5 pl-6 sm:p-6 sm:pl-7">
+      <div
+        role="tablist"
+        className="mb-5 flex rounded-lg bg-muted/80 p-1"
+        aria-label="Input mode"
+      >
+        <button
+          type="button"
+          role="tab"
+          aria-selected={inputMode === "text"}
           onClick={() => setInputMode("text")}
+          className={`flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-all duration-200 ${
+            inputMode === "text"
+              ? "bg-primary text-primary-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground hover:bg-background/60"
+          }`}
         >
-          Paste Article
-        </Button>
-        <Button
-          variant={inputMode === "url" ? "default" : "outline"}
-          size="sm"
+          <FileText className="size-4 shrink-0" aria-hidden />
+          Paste article
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={inputMode === "url"}
           onClick={() => setInputMode("url")}
+          className={`flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-all duration-200 ${
+            inputMode === "url"
+              ? "bg-primary text-primary-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground hover:bg-background/60"
+          }`}
         >
+          <Link2 className="size-4 shrink-0" aria-hidden />
           From URL
-        </Button>
+        </button>
       </div>
 
-      {/* Input Fields */}
       {inputMode === "text" ? (
         <Textarea
-          placeholder="Paste your article text here..."
+          placeholder="Paste your article here..."
           value={text}
           onChange={(e) => setText(e.target.value)}
-          className="min-h-[200px]"
+          className="min-h-[160px] resize-y rounded-lg border-border bg-background/70 text-base placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-primary/50"
+          aria-label="Article text"
         />
       ) : (
         <Input
@@ -156,17 +122,65 @@ export function ArticleInput({ onArticleParsed }: ArticleInputProps) {
           placeholder="https://example.com/article"
           value={url}
           onChange={(e) => setUrl(e.target.value)}
+          className="h-11 rounded-lg border-border bg-background/70 text-base placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-primary/50"
+          aria-label="Article URL"
         />
       )}
 
-      {/* Parse Button */}
+      <div className="mt-4 flex flex-wrap items-center gap-3">
+        <div className="flex items-center gap-2">
+          <Globe className="size-4 text-muted-foreground" aria-hidden />
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              render={
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-primary/30 hover:bg-primary/10 hover:border-primary/50 transition-colors"
+                >
+                  {selectedLanguageName}
+                </Button>
+              }
+            />
+            <DropdownMenuContent align="start">
+              {LANGUAGES.map((lang) => (
+                <DropdownMenuItem
+                  key={lang.code}
+                  onClick={() => setSelectedLanguage(lang.code)}
+                >
+                  {lang.name}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+        <div className="flex items-center gap-2">
+          <User className="size-4 text-muted-foreground" aria-hidden />
+          <Input
+            type="text"
+            placeholder="Author style (optional)"
+            value={authorName}
+            onChange={(e) => setAuthorName(e.target.value)}
+            className="h-8 w-44 rounded-md border-border text-sm placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-primary/50"
+            aria-label="Explain in this person's style (optional)"
+          />
+        </div>
+      </div>
+
       <Button
         onClick={handleParse}
-        disabled={isParsing || (inputMode === "text" ? !text.trim() : !url.trim())}
-        className="w-full"
+        disabled={isParsing || !canSubmit}
+        className="mt-5 h-11 w-full rounded-lg font-semibold transition-all duration-200 active:scale-[0.995] disabled:active:scale-100"
       >
-        {isParsing ? "Parsing..." : "Start Explaining"}
+        {isParsing ? (
+          <>
+            <Loader2 className="size-4 animate-spin" aria-hidden />
+            Parsing…
+          </>
+        ) : (
+          "Start explaining"
+        )}
       </Button>
-    </Card>
+    </div>
   );
 }

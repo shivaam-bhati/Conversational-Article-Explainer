@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Mic, MicOff, Loader2 } from "lucide-react";
 import { useConversation } from "@/contexts/conversation-context";
 
@@ -20,12 +19,15 @@ export function VoiceInput({ onCommand, onQuestion }: VoiceInputProps) {
 
   useEffect(() => {
     if (!("webkitSpeechRecognition" in window) && !("SpeechRecognition" in window)) {
-      setError("Your browser doesn't support speech recognition");
+      setError("Speech recognition is not supported in this browser.");
       return;
     }
 
     const SpeechRecognition =
-      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      (window as Window & { SpeechRecognition?: new () => SpeechRecognition }).SpeechRecognition
+      || (window as Window & { webkitSpeechRecognition?: new () => SpeechRecognition }).webkitSpeechRecognition;
+    if (!SpeechRecognition) return;
+
     const recognition = new SpeechRecognition();
 
     recognition.continuous = false;
@@ -39,13 +41,12 @@ export function VoiceInput({ onCommand, onQuestion }: VoiceInputProps) {
     };
 
     recognition.onresult = (event: SpeechRecognitionEvent) => {
-      const transcript = event.results[0][0].transcript;
-      setTranscript(transcript);
-      handleVoiceInput(transcript);
+      const t = event.results[0][0].transcript;
+      setTranscript(t);
+      handleVoiceInput(t);
     };
 
-    recognition.onerror = (event: any) => {
-      console.error("Speech recognition error:", event.error);
+    recognition.onerror = (event: { error: string }) => {
       setError(`Error: ${event.error}`);
       setIsListening(false);
       setGlobalListening(false);
@@ -59,40 +60,30 @@ export function VoiceInput({ onCommand, onQuestion }: VoiceInputProps) {
     recognitionRef.current = recognition;
 
     return () => {
-      if (recognitionRef.current) {
-        recognitionRef.current.stop();
-      }
+      recognitionRef.current?.stop();
     };
   }, [state?.language, setGlobalListening]);
 
   const handleVoiceInput = (text: string) => {
-    const lowerText = text.toLowerCase().trim();
+    const lower = text.toLowerCase().trim();
 
-    // Simple command detection
-    if (
-      lowerText.includes("continue") ||
-      lowerText.includes("next") ||
-      lowerText.includes("go on")
-    ) {
+    if (lower.includes("continue") || lower.includes("next") || lower.includes("go on")) {
       onCommand?.("continue");
-    } else if (
-      lowerText.includes("repeat") ||
-      lowerText.includes("say that again") ||
-      lowerText.includes("replay")
-    ) {
+    } else if (lower.includes("repeat") || lower.includes("say that again") || lower.includes("replay")) {
       onCommand?.("repeat");
-    } else if (
-      lowerText.includes("previous") ||
-      lowerText.includes("go back")
-    ) {
+    } else if (lower.includes("previous") || lower.includes("go back")) {
       onCommand?.("previous");
-    } else if (lowerText.includes("stop")) {
+    } else if (lower.includes("stop")) {
       onCommand?.("stop");
-    } else if (text.endsWith("?") || lowerText.startsWith("what") || lowerText.startsWith("how") || lowerText.startsWith("why") || lowerText.startsWith("can you")) {
-      // It's a question
+    } else if (
+      text.endsWith("?") ||
+      lower.startsWith("what") ||
+      lower.startsWith("how") ||
+      lower.startsWith("why") ||
+      lower.startsWith("can you")
+    ) {
       onQuestion?.(text);
     } else {
-      // Default: treat as continue
       onCommand?.("continue");
     }
   };
@@ -110,59 +101,70 @@ export function VoiceInput({ onCommand, onQuestion }: VoiceInputProps) {
     }
   };
 
-  if (error && !("webkitSpeechRecognition" in window) && !("SpeechRecognition" in window)) {
+  const notSupported =
+    !!error &&
+    !("webkitSpeechRecognition" in window) &&
+    !("SpeechRecognition" in window);
+
+  if (notSupported) {
     return (
-      <Card className="p-4">
+      <div className="rounded-xl border border-border bg-muted/30 px-4 py-3">
         <p className="text-sm text-muted-foreground">{error}</p>
-      </Card>
+      </div>
     );
   }
 
   return (
-    <Card className="p-4 space-y-3">
-      <div className="flex items-center gap-2">
-        {isListening ? (
-          <>
-            <Loader2 className="h-4 w-4 animate-spin text-primary" />
-            <span className="text-sm font-medium">Listening...</span>
-          </>
-        ) : (
-          <>
-            <Mic className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm font-medium">Voice Input</span>
-          </>
-        )}
-      </div>
-
-      <div className="flex gap-2">
+    <section
+      aria-label="Voice commands"
+      className="accent-stripe card-lift rounded-lg border border-border bg-card p-4 pl-5 space-y-3"
+    >
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          {isListening ? (
+            <span className="flex items-center justify-center animate-listen-pulse" aria-hidden>
+              <Loader2 className="size-4 animate-spin text-primary" />
+            </span>
+          ) : (
+            <Mic className="size-4 text-muted-foreground" aria-hidden />
+          )}
+          <span className="text-sm font-medium">
+            {isListening ? "Listening…" : "Voice"}
+          </span>
+        </div>
         {!isListening ? (
-          <Button onClick={startListening} size="sm" variant="default" className="w-full">
-            <Mic className="h-4 w-4 mr-2" />
-            Start Listening
+          <Button onClick={startListening} size="sm" className="transition-colors">
+            <Mic className="size-4" />
+            Start
           </Button>
         ) : (
-          <Button onClick={stopListening} size="sm" variant="outline" className="w-full">
-            <MicOff className="h-4 w-4 mr-2" />
-            Stop Listening
+          <Button
+            onClick={stopListening}
+            size="sm"
+            variant="outline"
+            className="border-primary/50 bg-primary/5 hover:bg-primary/10 text-primary transition-colors"
+          >
+            <MicOff className="size-4" />
+            Stop
           </Button>
         )}
       </div>
 
       {transcript && (
-        <div className="text-sm text-muted-foreground bg-muted p-2 rounded">
-          Heard: "{transcript}"
-        </div>
+        <p className="text-sm text-muted-foreground rounded-lg bg-muted/60 px-3 py-2">
+          &ldquo;{transcript}&rdquo;
+        </p>
       )}
 
-      {error && (
-        <div className="text-xs text-destructive bg-destructive/10 p-2 rounded">
+      {error && !isListening && (
+        <p className="text-xs text-destructive rounded-lg bg-destructive/10 px-3 py-2">
           {error}
-        </div>
+        </p>
       )}
 
       <p className="text-xs text-muted-foreground">
-        Try saying: "continue", "repeat", "what does that mean?", or ask a question
+        Say &ldquo;next&rdquo;, &ldquo;repeat&rdquo;, &ldquo;go back&rdquo;, or ask a question.
       </p>
-    </Card>
+    </section>
   );
 }

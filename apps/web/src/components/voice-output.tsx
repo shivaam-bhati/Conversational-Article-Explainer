@@ -2,20 +2,18 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Play, Pause, Square, Volume2, Settings2, Loader2 } from "lucide-react";
+import { Play, Pause, Square, Volume2, Settings2, Loader2, ChevronDown, ChevronUp } from "lucide-react";
 import { useConversation } from "@/contexts/conversation-context";
 import type { LanguageCode } from "@/components/article-input";
 import { trpcClient } from "@/utils/trpc";
 import { useMutation } from "@tanstack/react-query";
 
-// Language code mapping for Web Speech API
 const TTS_LANGUAGE_MAP: Record<LanguageCode, string> = {
   en: "en-US",
   es: "es-ES",
@@ -34,53 +32,35 @@ interface VoiceOutputProps {
   onComplete?: () => void;
 }
 
-// Helper function to find the best voice for a language
 function getBestVoice(langCode: string): SpeechSynthesisVoice | null {
-  if (!("speechSynthesis" in window)) {
-    return null;
-  }
+  if (!("speechSynthesis" in window)) return null;
 
   const voices = window.speechSynthesis.getVoices();
-  if (voices.length === 0) {
-    return null;
+  if (voices.length === 0) return null;
+
+  const match = voices.filter((v) => v.lang.startsWith(langCode.split("-")[0]));
+  if (match.length === 0) {
+    const exact = voices.find((v) => v.lang === langCode);
+    return exact ?? voices[0];
   }
 
-  // Filter voices that match the language
-  const matchingVoices = voices.filter((voice) => {
-    return voice.lang.startsWith(langCode.split("-")[0]);
+  const local = match.find((v) => v.lang === langCode);
+  if (local) return local;
+
+  const female = match.find((v) => {
+    const n = v.name.toLowerCase();
+    return n.includes("female") || n.includes("zira") || n.includes("samantha") ||
+           n.includes("karen") || n.includes("susan") || n.includes("fiona");
   });
+  if (female) return female;
 
-  if (matchingVoices.length === 0) {
-    // Fallback to any voice with the exact language code
-    const exactMatch = voices.find((voice) => voice.lang === langCode);
-    if (exactMatch) return exactMatch;
-    return voices[0]; // Ultimate fallback
-  }
-
-  // Prefer voices with local variants (e.g., en-US over en-GB for US English)
-  const localVoice = matchingVoices.find((voice) => voice.lang === langCode);
-  if (localVoice) return localVoice;
-
-  // Prefer female voices (often sound more natural for narration)
-  const femaleVoice = matchingVoices.find((voice) => {
-    const name = voice.name.toLowerCase();
-    return name.includes("female") || name.includes("zira") || name.includes("samantha") || 
-           name.includes("karen") || name.includes("susan") || name.includes("fiona");
+  const premium = match.find((v) => {
+    const n = v.name.toLowerCase();
+    return n.includes("premium") || n.includes("enhanced") || n.includes("neural") || n.includes("natural");
   });
+  if (premium) return premium;
 
-  if (femaleVoice) return femaleVoice;
-
-  // Prefer premium/high-quality voices (often have names like "premium", "enhanced", "neural")
-  const premiumVoice = matchingVoices.find((voice) => {
-    const name = voice.name.toLowerCase();
-    return name.includes("premium") || name.includes("enhanced") || 
-           name.includes("neural") || name.includes("natural");
-  });
-
-  if (premiumVoice) return premiumVoice;
-
-  // Return the first matching voice
-  return matchingVoices[0];
+  return match[0];
 }
 
 export function VoiceOutput({ text, language, onComplete }: VoiceOutputProps) {
@@ -90,226 +70,136 @@ export function VoiceOutput({ text, language, onComplete }: VoiceOutputProps) {
   const [selectedVoice, setSelectedVoice] = useState<SpeechSynthesisVoice | null>(null);
   const [ttsMethod, setTtsMethod] = useState<TTSMethod>("web-speech");
   const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
+  const [showText, setShowText] = useState(false);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const { state, setIsSpeaking: setGlobalSpeaking } = useConversation();
 
-  // GPT-SoVITS mutation
   const gptSoVITSMutation = useMutation({
     mutationFn: async (input: {
       text: string;
       language: string;
       authorName?: string;
-    }) => {
-      return await trpcClient.tts.generateSpeech.mutate(input);
-    },
+    }) => trpcClient.tts.generateSpeech.mutate(input),
   });
 
-  // Load and filter voices for the selected language
   useEffect(() => {
-    const loadVoices = () => {
-      const allVoices = window.speechSynthesis.getVoices();
-      const ttsLanguage = TTS_LANGUAGE_MAP[language] || "en-US";
-      
-      // Filter voices matching the language
-      const matchingVoices = allVoices.filter((voice) => {
-        return voice.lang.startsWith(ttsLanguage.split("-")[0]) || voice.lang === ttsLanguage;
-      });
+    const load = () => {
+      const all = window.speechSynthesis.getVoices();
+      const tts = TTS_LANGUAGE_MAP[language] || "en-US";
+      const match = all.filter(
+        (v) => v.lang.startsWith(tts.split("-")[0]) || v.lang === tts
+      );
+      const list = match.length > 0 ? match : all;
+      setVoices(list);
 
-      const voicesToShow = matchingVoices.length > 0 ? matchingVoices : allVoices;
-      setVoices(voicesToShow);
-
-      // Set default voice if not already selected or if language changed
-      if (!selectedVoice || !voicesToShow.includes(selectedVoice)) {
-        const bestVoice = getBestVoice(ttsLanguage);
-        if (bestVoice && voicesToShow.includes(bestVoice)) {
-          setSelectedVoice(bestVoice);
-        } else if (voicesToShow.length > 0) {
-          setSelectedVoice(voicesToShow[0]);
-        } else if (allVoices.length > 0) {
-          setSelectedVoice(allVoices[0]);
-        }
+      if (!selectedVoice || !list.includes(selectedVoice)) {
+        const best = getBestVoice(tts);
+        if (best && list.includes(best)) setSelectedVoice(best);
+        else if (list.length > 0) setSelectedVoice(list[0]);
+        else if (all.length > 0) setSelectedVoice(all[0]);
       }
     };
 
-    loadVoices();
-    window.speechSynthesis.onvoiceschanged = loadVoices;
+    load();
+    window.speechSynthesis.onvoiceschanged = load;
 
     return () => {
-      if (utteranceRef.current) {
-        window.speechSynthesis.cancel();
-      }
+      if (utteranceRef.current) window.speechSynthesis.cancel();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [language]);
 
-  // Auto-select TTS method based on author and reference audio availability
-  // Note: GPT-SoVITS requires a reference audio URL, so we'll use Web Speech API
-  // until audio sample collection is implemented
   useEffect(() => {
-    // For now, always use Web Speech API since we don't have reference audio URLs yet
-    // Once audio sample collection is implemented, check for referenceAudioUrl here
     setTtsMethod("web-speech");
-    
-    // Future: When reference audio is available
-    // if (state?.authorName && state?.authorAudioUrl) {
-    //   setTtsMethod("gpt-sovits");
-    // } else {
-    //   setTtsMethod("web-speech");
-    // }
   }, [state?.authorName]);
 
   const speakWithGPTSoVITS = async () => {
     setIsGeneratingAudio(true);
     try {
-      // For now, GPT-SoVITS requires a reference audio URL
-      // Since we don't have audio samples yet, we'll fallback to Web Speech API
-      // TODO: Once audio sample collection is implemented, pass referenceAudioUrl here
       const result = await gptSoVITSMutation.mutateAsync({
         text,
         language,
         authorName: state?.authorName,
-        // referenceAudioUrl: state?.authorAudioUrl, // Will be added when audio samples are available
       });
 
-      if (result.error || !result.audioUrl) {
-        // Fallback to Web Speech API if GPT-SoVITS fails or no reference audio
-        console.warn(
-          "GPT-SoVITS unavailable (reference audio required), falling back to Web Speech API:",
-          result.error || "No reference audio URL provided"
-        );
+      if ("error" in result || !("audioUrl" in result) || !result.audioUrl) {
         speakWithWebSpeech();
         return;
       }
 
-      if (result.audioUrl) {
-        // Play audio using HTML5 Audio
-        const audio = new Audio(result.audioUrl);
-        audioRef.current = audio;
+      const audio = new Audio(result.audioUrl);
+      audioRef.current = audio;
 
-        audio.onplay = () => {
-          setIsSpeaking(true);
-          setIsPaused(false);
-          setGlobalSpeaking(true);
-          setIsGeneratingAudio(false);
-        };
-
-        audio.onpause = () => {
-          setIsPaused(true);
-        };
-
-        audio.onended = () => {
-          setIsSpeaking(false);
-          setIsPaused(false);
-          setGlobalSpeaking(false);
-          setIsGeneratingAudio(false);
-          onComplete?.();
-        };
-
-        audio.onerror = () => {
-          console.error("Audio playback error");
-          setIsGeneratingAudio(false);
-          setIsSpeaking(false);
-          setGlobalSpeaking(false);
-          // Fallback to Web Speech API
-          speakWithWebSpeech();
-        };
-
-        await audio.play();
-      }
-    } catch (error) {
-      console.error("GPT-SoVITS error:", error);
+      audio.onplay = () => {
+        setIsSpeaking(true);
+        setIsPaused(false);
+        setGlobalSpeaking(true);
+        setIsGeneratingAudio(false);
+      };
+      audio.onpause = () => setIsPaused(true);
+      audio.onended = () => {
+        setIsSpeaking(false);
+        setIsPaused(false);
+        setGlobalSpeaking(false);
+        setIsGeneratingAudio(false);
+        onComplete?.();
+      };
+      audio.onerror = () => {
+        setIsGeneratingAudio(false);
+        setIsSpeaking(false);
+        setGlobalSpeaking(false);
+        speakWithWebSpeech();
+      };
+      await audio.play();
+    } catch {
       setIsGeneratingAudio(false);
-      // Fallback to Web Speech API
       speakWithWebSpeech();
     }
   };
 
   const speakWithWebSpeech = () => {
     if (!("speechSynthesis" in window)) {
-      alert("Your browser doesn't support text-to-speech");
+      alert("Text-to-speech is not supported.");
       return;
     }
 
-    // Cancel any ongoing speech
     window.speechSynthesis.cancel();
 
-    const utterance = new SpeechSynthesisUtterance(text);
-    const ttsLanguage = TTS_LANGUAGE_MAP[language] || "en-US";
-    utterance.lang = ttsLanguage;
-    
-    // Use selected voice or find best available
-    const voiceToUse = selectedVoice || getBestVoice(ttsLanguage);
-    if (voiceToUse) {
-      utterance.voice = voiceToUse;
-      console.log(`Using voice: ${voiceToUse.name} (${voiceToUse.lang})`);
-    }
+    const u = new SpeechSynthesisUtterance(text);
+    const tts = TTS_LANGUAGE_MAP[language] || "en-US";
+    u.lang = tts;
 
-    // Natural narration settings - more like a real author reading
-    utterance.rate = 1.0; // Natural speed (slightly faster than before)
-    utterance.pitch = 0.95; // Slightly lower pitch for more mature/natural sound
-    utterance.volume = 1;
+    const voice = selectedVoice || getBestVoice(tts);
+    if (voice) u.voice = voice;
 
-    utterance.onstart = () => {
+    u.rate = 1.0;
+    u.pitch = 0.95;
+    u.volume = 1;
+
+    u.onstart = () => {
       setIsSpeaking(true);
       setIsPaused(false);
       setGlobalSpeaking(true);
     };
-
-    utterance.onend = () => {
+    u.onend = () => {
       setIsSpeaking(false);
       setIsPaused(false);
       setGlobalSpeaking(false);
       onComplete?.();
     };
-
-    utterance.onerror = (error) => {
-      // Extract error details (SpeechSynthesisErrorEvent may not log well)
-      const errorInfo = {
-        error: error.error,
-        type: error.type,
-        charIndex: error.charIndex,
-        language: utterance.lang,
-        textPreview: text.substring(0, 50),
-      };
-
-      console.error("Speech synthesis error:", errorInfo);
-      
-      // Common SpeechSynthesisError types:
-      // - 'not-allowed': User interaction required (browser autoplay policy)
-      // - 'network': Network error
-      // - 'synthesis-failed': Voice synthesis failed
-      // - 'synthesis-unavailable': No voices available
-      // - 'text-too-long': Text is too long
-      // - 'invalid-argument': Invalid language or other argument
-      // - 'language-unavailable': Language not supported
-      
-      if (error.error === "not-allowed") {
-        console.warn(
-          "Speech synthesis requires user interaction. " +
-          "Browser blocked autoplay - ensure speech is triggered by a user action."
-        );
-      } else if (error.error === "language-unavailable") {
-        console.warn(`Language ${utterance.lang} not available on this system.`);
-      } else if (error.error === "synthesis-unavailable") {
-        console.warn("No voices available for speech synthesis on this browser/system.");
-      }
-      
+    u.onerror = () => {
       setIsSpeaking(false);
       setIsPaused(false);
       setGlobalSpeaking(false);
     };
 
-    utteranceRef.current = utterance;
-    window.speechSynthesis.speak(utterance);
+    utteranceRef.current = u;
+    window.speechSynthesis.speak(u);
   };
 
   const speak = () => {
-    if (ttsMethod === "gpt-sovits") {
-      speakWithGPTSoVITS();
-    } else {
-      speakWithWebSpeech();
-    }
+    if (ttsMethod === "gpt-sovits") speakWithGPTSoVITS();
+    else speakWithWebSpeech();
   };
 
   const pause = () => {
@@ -346,7 +236,6 @@ export function VoiceOutput({ text, language, onComplete }: VoiceOutputProps) {
     setIsGeneratingAudio(false);
   };
 
-  // Cancel any ongoing speech when component unmounts or text changes
   useEffect(() => {
     return () => {
       if (audioRef.current) {
@@ -357,52 +246,75 @@ export function VoiceOutput({ text, language, onComplete }: VoiceOutputProps) {
     };
   }, [text]);
 
-  if (!text) {
-    return null;
-  }
+  if (!text) return null;
 
   return (
-    <Card className="p-4 space-y-4">
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <Volume2 className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm font-medium">Voice Output</span>
+    <div className="accent-stripe card-lift rounded-lg border border-border bg-card overflow-hidden">
+      {/* Controls bar */}
+      <div className="flex items-center gap-3 p-4">
+        <span
+          className={`flex size-9 items-center justify-center rounded-md bg-primary text-primary-foreground ${isSpeaking && !isGeneratingAudio ? "animate-speak-glow" : ""}`}
+          aria-hidden
+        >
+          <Volume2 className="size-4" />
+        </span>
+        <div className="flex flex-1 flex-wrap items-center gap-2">
+          {!isSpeaking && !isPaused && (
+            <Button onClick={speak} size="sm">
+              <Play className="size-4" />
+              Play
+            </Button>
+          )}
+          {isSpeaking && !isPaused && (
+            <Button onClick={pause} size="sm" variant="outline" className="transition-colors">
+              <Pause className="size-4" />
+              Pause
+            </Button>
+          )}
+          {isPaused && (
+            <Button onClick={resume} size="sm">
+              <Play className="size-4" />
+              Resume
+            </Button>
+          )}
+          {(isSpeaking || isPaused) && (
+            <Button
+              onClick={stop}
+              size="sm"
+              variant="outline"
+              className="border-primary/40 hover:bg-primary/10 hover:border-primary/50 text-foreground transition-colors"
+            >
+              <Square className="size-4" />
+              Stop
+            </Button>
+          )}
           {isGeneratingAudio && (
-            <span className="text-xs text-primary flex items-center gap-1">
-              <Loader2 className="h-3 w-3 animate-spin" />
-              Generating voice...
+            <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
+              <Loader2 className="size-3.5 animate-spin" />
+              Generating…
             </span>
           )}
           {isSpeaking && !isGeneratingAudio && (
-            <span className="text-xs text-muted-foreground animate-pulse">
-              {ttsMethod === "gpt-sovits" && state?.authorName
-                ? `Speaking as ${state.authorName}...`
-                : "Speaking..."}
-            </span>
-          )}
-          {state?.authorName && (
-            <span className="text-xs text-muted-foreground">
-              ({ttsMethod === "gpt-sovits" ? "GPT-SoVITS" : "Web Speech API - Reference audio needed for voice cloning"})
-            </span>
+            <span className="text-sm text-muted-foreground animate-pulse">Speaking…</span>
           )}
         </div>
         {voices.length > 0 && (
           <DropdownMenu>
-            <DropdownMenuTrigger render={<Button variant="outline" size="sm" />}>
-              <Settings2 className="h-3 w-3 mr-1" />
-              Voice
+            <DropdownMenuTrigger render={<Button variant="outline" size="icon-sm" />}>
+              <Settings2 className="size-4" aria-hidden />
+              <span className="sr-only">Voice options</span>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="max-h-[300px] overflow-y-auto">
-              {voices.map((voice) => (
+            <DropdownMenuContent align="end" className="max-h-[280px] overflow-y-auto">
+              {voices.map((v) => (
                 <DropdownMenuItem
-                  key={voice.name}
-                  onClick={() => setSelectedVoice(voice)}
-                  className={selectedVoice?.name === voice.name ? "bg-accent" : ""}
+                  key={v.name}
+                  onClick={() => setSelectedVoice(v)}
+                  className={selectedVoice?.name === v.name ? "bg-accent" : ""}
                 >
                   <div className="flex flex-col">
-                    <span className="text-xs font-medium">{voice.name}</span>
+                    <span className="text-xs font-medium">{v.name}</span>
                     <span className="text-xs text-muted-foreground">
-                      {voice.lang} {voice.localService ? "(Local)" : ""}
+                      {v.lang} {v.localService ? "(Local)" : ""}
                     </span>
                   </div>
                 </DropdownMenuItem>
@@ -412,37 +324,22 @@ export function VoiceOutput({ text, language, onComplete }: VoiceOutputProps) {
         )}
       </div>
 
-      <div className="flex gap-2">
-        {!isSpeaking && !isPaused && (
-          <Button onClick={speak} size="sm" variant="default">
-            <Play className="h-4 w-4 mr-2" />
-            Play
-          </Button>
-        )}
-        {isSpeaking && !isPaused && (
-          <Button onClick={pause} size="sm" variant="outline">
-            <Pause className="h-4 w-4 mr-2" />
-            Pause
-          </Button>
-        )}
-        {isPaused && (
-          <Button onClick={resume} size="sm" variant="default">
-            <Play className="h-4 w-4 mr-2" />
-            Resume
-          </Button>
-        )}
-        {(isSpeaking || isPaused) && (
-          <Button onClick={stop} size="sm" variant="outline">
-            <Square className="h-4 w-4 mr-2" />
-            Stop
-          </Button>
+      {/* Collapsible text */}
+      <div className="border-t border-border">
+        <button
+          type="button"
+          onClick={() => setShowText((s) => !s)}
+          className="flex w-full items-center justify-between gap-2 px-4 py-2.5 text-left text-sm text-muted-foreground hover:bg-primary/10 hover:text-primary active:bg-primary/15 transition-colors rounded-b-lg"
+        >
+          {showText ? "Hide transcript" : "Show transcript"}
+          {showText ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
+        </button>
+        {showText && (
+          <div className="max-h-40 overflow-y-auto px-4 pb-4 text-sm text-foreground/90 leading-relaxed">
+            {text}
+          </div>
         )}
       </div>
-
-      {/* Optional: Show explanation text */}
-      <div className="text-sm text-muted-foreground bg-muted p-3 rounded-md max-h-40 overflow-y-auto">
-        {text}
-      </div>
-    </Card>
+    </div>
   );
 }

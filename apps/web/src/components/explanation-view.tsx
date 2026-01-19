@@ -1,15 +1,15 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { VoiceOutput } from "./voice-output";
 import { VoiceInput } from "./voice-input";
 import { QuestionHandler } from "./question-handler";
 import { useConversation } from "@/contexts/conversation-context";
 import { trpcClient } from "@/utils/trpc";
 import { useMutation } from "@tanstack/react-query";
-import { Loader2, ArrowRight, ArrowLeft, RotateCcw } from "lucide-react";
+import { Loader2, ChevronLeft, ChevronRight, RotateCcw } from "lucide-react";
 import { useAuthorStyle } from "@/hooks/use-author-style";
 
 export function ExplanationView() {
@@ -19,31 +19,26 @@ export function ExplanationView() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [currentQuestion, setCurrentQuestion] = useState<string | null>(null);
 
-  // Fetch author style if author name is provided
   const { profile: authorStyleProfile, isLoading: isLoadingAuthorStyle } =
     useAuthorStyle(state?.authorName);
 
-  // Store author style profile in context when fetched
-  // Only update if profile actually changed to avoid infinite loops
   useEffect(() => {
     if (
       authorStyleProfile &&
       state?.authorName &&
       state.authorName === authorStyleProfile.name
     ) {
-      // Only update if the profile is different from what's already stored
       const currentProfile = state.authorStyleProfile;
       if (
         !currentProfile ||
         currentProfile.name !== authorStyleProfile.name ||
         JSON.stringify(currentProfile) !== JSON.stringify(authorStyleProfile)
       ) {
-        console.log("Setting author style profile:", authorStyleProfile.name);
         setAuthorStyleProfile(authorStyleProfile);
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [authorStyleProfile?.name, state?.authorName]); // Only depend on profile name and author name
+  }, [authorStyleProfile?.name, state?.authorName]);
 
   const explainMutation = useMutation({
     mutationFn: async (input: {
@@ -68,12 +63,12 @@ export function ExplanationView() {
     },
   });
 
-  if (!state) {
-    return null;
-  }
+  if (!state) return null;
 
   const currentChunk = state.chunks[state.currentChunkIndex];
   const hasExplanation = state.explanations[state.currentChunkIndex] !== undefined;
+  const isFirstChunk = state.currentChunkIndex === 0;
+  const isLastChunk = state.currentChunkIndex === state.chunks.length - 1;
 
   const generateExplanation = async () => {
     if (!currentChunk) return;
@@ -84,14 +79,7 @@ export function ExplanationView() {
         .sort((a, b) => Number(a) - Number(b))
         .map((key) => state.explanations[Number(key)]);
 
-      // Use the profile from state (which should be set by the useEffect) or fallback to the hook's profile
       const profileToUse = state.authorStyleProfile || authorStyleProfile;
-      
-      console.log("Generating explanation with:", {
-        authorName: state.authorName,
-        hasProfile: !!profileToUse,
-        profileName: profileToUse?.name,
-      });
 
       const result = await explainMutation.mutateAsync({
         chunk: currentChunk,
@@ -106,13 +94,12 @@ export function ExplanationView() {
       setCurrentExplanation(result.explanation);
     } catch (error) {
       console.error("Failed to generate explanation:", error);
-      alert("Failed to generate explanation. Please try again.");
+      toast.error("Couldn’t generate explanation. Try again.");
     } finally {
       setIsGenerating(false);
     }
   };
 
-  // Auto-generate explanation when chunk changes
   useEffect(() => {
     if (currentChunk && !hasExplanation && !isGenerating) {
       generateExplanation();
@@ -156,150 +143,141 @@ export function ExplanationView() {
         handleReplay();
         break;
       case "stop":
-        // Stop speaking is handled by VoiceOutput
+        break;
+      default:
         break;
     }
   };
 
-  const handleQuestion = (question: string) => {
-    setCurrentQuestion(question);
-  };
+  const handleQuestion = (question: string) => setCurrentQuestion(question);
+  const handleQuestionComplete = () => setCurrentQuestion(null);
 
-  const handleQuestionComplete = () => {
-    setCurrentQuestion(null);
-  };
-
-  const isFirstChunk = state.currentChunkIndex === 0;
-  const isLastChunk = state.currentChunkIndex === state.chunks.length - 1;
+  const progress = ((state.currentChunkIndex + 1) / state.chunks.length) * 100;
 
   return (
     <div className="space-y-6">
-      {/* Progress indicator */}
-      <Card className="p-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm font-medium">
-              Chunk {state.currentChunkIndex + 1} of {state.chunks.length}
-            </p>
-            <div className="flex items-center gap-2 mt-1">
-              <p className="text-xs text-muted-foreground">
-                Language: {state.language}
-              </p>
-              {state.authorName && (
-                <>
-                  <span className="text-xs text-muted-foreground">•</span>
-                  <p className="text-xs font-medium text-primary">
-                    Explaining as: {state.authorName}
-                  </p>
-                </>
-              )}
-            </div>
-          </div>
-          <div className="flex gap-2">
+      {/* Progress */}
+      <section aria-label="Progress" className="space-y-3">
+        <div className="flex items-center justify-between gap-4">
+          <span className="text-sm text-muted-foreground">
+            Section {state.currentChunkIndex + 1} of {state.chunks.length}
+          </span>
+          <div className="flex items-center gap-1">
             <Button
               onClick={handlePrevious}
               disabled={isFirstChunk}
-              size="sm"
               variant="outline"
+              size="icon-sm"
+              className="border-primary/35 hover:bg-primary/10 hover:border-primary/50 disabled:opacity-50 transition-colors"
+              aria-label="Previous section"
             >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Previous
+              <ChevronLeft className="size-4" />
             </Button>
             <Button
               onClick={handleNext}
               disabled={isLastChunk}
-              size="sm"
               variant="outline"
+              size="icon-sm"
+              className="border-primary/35 hover:bg-primary/10 hover:border-primary/50 disabled:opacity-50 transition-colors"
+              aria-label="Next section"
             >
-              Next
-              <ArrowRight className="h-4 w-4 ml-2" />
+              <ChevronRight className="size-4" />
             </Button>
           </div>
         </div>
-        <div className="mt-2 w-full bg-muted rounded-full h-2">
+        <div
+          className="h-1.5 w-full overflow-hidden rounded-full bg-muted"
+          role="progressbar"
+          aria-valuenow={Math.round(progress)}
+          aria-valuemin={0}
+          aria-valuemax={100}
+        >
           <div
-            className="bg-primary h-2 rounded-full transition-all"
-            style={{
-              width: `${((state.currentChunkIndex + 1) / state.chunks.length) * 100}%`,
-            }}
+            className="h-full rounded-full bg-primary transition-[width] duration-300 ease-out"
+            style={{ width: `${progress}%` }}
           />
         </div>
-      </Card>
+      </section>
 
-      {/* Current chunk preview */}
-      <Card className="p-4">
-        <h3 className="text-sm font-medium mb-2">Current Chunk:</h3>
-        <p className="text-sm text-muted-foreground">{currentChunk}</p>
-      </Card>
+      {/* Chunk preview */}
+      <section aria-label="Current section" className="accent-stripe rounded-lg border border-border bg-muted/40 p-4 pl-5">
+        <p className="text-sm text-foreground/90 leading-relaxed line-clamp-4">
+          {currentChunk}
+        </p>
+      </section>
 
-      {/* Author Style Loading */}
+      {/* Author style loading */}
       {isLoadingAuthorStyle && state.authorName && (
-        <Card className="p-4 bg-primary/5 border-primary/20">
-          <div className="flex items-center gap-2">
-            <Loader2 className="h-4 w-4 animate-spin text-primary" />
-            <span className="text-sm text-primary">
-              Learning {state.authorName}'s speaking style...
-            </span>
-          </div>
-        </Card>
+        <div className="accent-stripe flex items-center gap-2 rounded-lg border border-primary/25 bg-primary/10 px-4 py-3 pl-5">
+          <Loader2 className="size-4 shrink-0 animate-spin text-primary" />
+          <span className="text-sm text-foreground">
+            Learning {state.authorName}&apos;s style…
+          </span>
+        </div>
       )}
 
-      {/* Explanation */}
-      {isGenerating ? (
-        <Card className="p-6">
-          <div className="flex items-center gap-2">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            <span className="text-sm">
+      {/* Explanation / voice output */}
+      <section aria-label="Explanation">
+        {isGenerating ? (
+          <div className="accent-stripe flex items-center gap-3 rounded-lg border border-border bg-card p-5 pl-6">
+            <Loader2 className="size-5 shrink-0 animate-spin text-primary" />
+            <span className="text-sm text-muted-foreground">
               {state.authorName
-                ? `Generating explanation in ${state.authorName}'s style...`
-                : "Generating explanation..."}
+                ? `Explaining in ${state.authorName}'s style…`
+                : "Generating explanation…"}
             </span>
           </div>
-        </Card>
-      ) : currentExplanation ? (
-        <VoiceOutput
-          text={currentExplanation}
-          language={state.language}
-          onComplete={() => {
-            // Auto-advance to next chunk after explanation completes
-            if (!isLastChunk) {
-              setTimeout(() => {
-                handleNext();
-              }, 1000);
-            }
-          }}
-        />
-      ) : (
-        <Card className="p-6">
-          <Button onClick={generateExplanation} disabled={isGenerating}>
-            {isGenerating ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Generating...
-              </>
-            ) : (
-              "Generate Explanation"
-            )}
-          </Button>
-        </Card>
-      )}
+        ) : currentExplanation ? (
+          <VoiceOutput
+            text={currentExplanation}
+            language={state.language}
+            onComplete={() => {
+              if (!isLastChunk) {
+                setTimeout(handleNext, 1000);
+              }
+            }}
+          />
+        ) : (
+          <div className="accent-stripe card-lift rounded-lg border border-border bg-card p-5 pl-6">
+            <Button
+              onClick={generateExplanation}
+              disabled={isGenerating}
+              className="w-full transition-all duration-200 active:scale-[0.995] disabled:active:scale-100"
+            >
+              {isGenerating ? (
+                <>
+                  <Loader2 className="size-4 animate-spin" />
+                  Generating…
+                </>
+              ) : (
+                "Generate explanation"
+              )}
+            </Button>
+          </div>
+        )}
+      </section>
 
-      {/* Replay button */}
       {hasExplanation && (
         <div className="flex justify-center">
-          <Button onClick={handleReplay} variant="outline" size="sm">
-            <RotateCcw className="h-4 w-4 mr-2" />
-            Replay Explanation
+          <Button
+            onClick={handleReplay}
+            variant="ghost"
+            size="sm"
+            className="text-primary hover:bg-primary/10 hover:text-primary active:bg-primary/15 transition-colors"
+          >
+            <RotateCcw className="size-4" />
+            Replay
           </Button>
         </div>
       )}
 
-      {/* Question Handler */}
       {currentQuestion && (
-        <QuestionHandler question={currentQuestion} onComplete={handleQuestionComplete} />
+        <QuestionHandler
+          question={currentQuestion}
+          onComplete={handleQuestionComplete}
+        />
       )}
 
-      {/* Voice Input */}
       <VoiceInput onCommand={handleCommand} onQuestion={handleQuestion} />
     </div>
   );
