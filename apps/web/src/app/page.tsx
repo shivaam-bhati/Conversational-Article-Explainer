@@ -1,46 +1,48 @@
 "use client";
-import { useQuery } from "@tanstack/react-query";
 
-import { trpc } from "@/utils/trpc";
-
-const TITLE_TEXT = `
- ██████╗ ███████╗████████╗████████╗███████╗██████╗
- ██╔══██╗██╔════╝╚══██╔══╝╚══██╔══╝██╔════╝██╔══██╗
- ██████╔╝█████╗     ██║      ██║   █████╗  ██████╔╝
- ██╔══██╗██╔══╝     ██║      ██║   ██╔══╝  ██╔══██╗
- ██████╔╝███████╗   ██║      ██║   ███████╗██║  ██║
- ╚═════╝ ╚══════╝   ╚═╝      ╚═╝   ╚══════╝╚═╝  ╚═╝
-
- ████████╗    ███████╗████████╗ █████╗  ██████╗██╗  ██╗
- ╚══██╔══╝    ██╔════╝╚══██╔══╝██╔══██╗██╔════╝██║ ██╔╝
-    ██║       ███████╗   ██║   ███████║██║     █████╔╝
-    ██║       ╚════██║   ██║   ██╔══██║██║     ██╔═██╗
-    ██║       ███████║   ██║   ██║  ██║╚██████╗██║  ██╗
-    ╚═╝       ╚══════╝   ╚═╝   ╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝
- `;
+import { ArticleInput } from "@/components/article-input";
+import { ExplanationView } from "@/components/explanation-view";
+import { useConversation } from "@/contexts/conversation-context";
+import { Button } from "@/components/ui/button";
 
 export default function Home() {
-  const healthCheck = useQuery(trpc.healthCheck.queryOptions());
+  const { state, startConversation, reset } = useConversation();
+
+  const handleArticleParsed = (chunks: string[], language: string) => {
+    startConversation(chunks, language as any);
+  };
+
+  if (!state) {
+    return (
+      <div className="container mx-auto max-w-4xl px-4 py-8">
+        <div className="space-y-6">
+          <div className="text-center space-y-2">
+            <h1 className="text-3xl font-bold">Conversational Article Explainer</h1>
+            <p className="text-muted-foreground">
+              Transform long-form articles into interactive, voice-first explanations
+            </p>
+          </div>
+          <ArticleInput onArticleParsed={handleArticleParsed} />
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="container mx-auto max-w-3xl px-4 py-2">
-      <pre className="overflow-x-auto font-mono text-sm">{TITLE_TEXT}</pre>
-      <div className="grid gap-6">
-        <section className="rounded-lg border p-4">
-          <h2 className="mb-2 font-medium">API Status</h2>
-          <div className="flex items-center gap-2">
-            <div
-              className={`h-2 w-2 rounded-full ${healthCheck.data ? "bg-green-500" : "bg-red-500"}`}
-            />
-            <span className="text-sm text-muted-foreground">
-              {healthCheck.isLoading
-                ? "Checking..."
-                : healthCheck.data
-                  ? "Connected"
-                  : "Disconnected"}
-            </span>
+    <div className="container mx-auto max-w-4xl px-4 py-8">
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold">Article Explainer</h1>
+            <p className="text-sm text-muted-foreground">
+              {state.chunks.length} chunks • Language: {state.language}
+            </p>
           </div>
-        </section>
+          <Button onClick={reset} variant="outline" size="sm">
+            Start New Article
+          </Button>
+        </div>
+        <ExplanationView />
       </div>
     </div>
   );

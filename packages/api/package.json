@@ -17,7 +17,10 @@
     "@trpc/server": "catalog:",
     "dotenv": "catalog:",
     "next": "catalog:",
-    "zod": "catalog:"
+    "zod": "catalog:",
+    "openai": "^4.67.3",
+    "@mozilla/readability": "^0.4.4",
+    "jsdom": "^24.1.3"
   },
   "devDependencies": {
     "@my-better-t-app/config": "workspace:*",

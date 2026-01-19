@@ -17,8 +17,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "my-better-t-app",
-  description: "my-better-t-app",
+  title: "Conversational Article Explainer",
+  description: "Transform long-form articles into interactive, voice-first explanations. Get AI-powered explanations that adapt to your questions and understanding level.",
 };
 
 export default function RootLayout({
