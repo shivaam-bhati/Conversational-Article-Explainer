@@ -10,13 +10,25 @@ import { useConversation } from "@/contexts/conversation-context";
 import { trpcClient } from "@/utils/trpc";
 import { useMutation } from "@tanstack/react-query";
 import { Loader2, ArrowRight, ArrowLeft, RotateCcw } from "lucide-react";
+import { useAuthorStyle } from "@/hooks/use-author-style";
 
 export function ExplanationView() {
-  const { state, setCurrentChunk, addExplanation } =
+  const { state, setCurrentChunk, addExplanation, setAuthorStyleProfile } =
     useConversation();
   const [currentExplanation, setCurrentExplanation] = useState<string>("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [currentQuestion, setCurrentQuestion] = useState<string | null>(null);
+
+  // Fetch author style if author name is provided
+  const { profile: authorStyleProfile, isLoading: isLoadingAuthorStyle } =
+    useAuthorStyle(state?.authorName);
+
+  // Store author style profile in context when fetched
+  useEffect(() => {
+    if (authorStyleProfile && state?.authorName) {
+      setAuthorStyleProfile(authorStyleProfile);
+    }
+  }, [authorStyleProfile, state?.authorName, setAuthorStyleProfile]);
 
   const explainMutation = useMutation({
     mutationFn: async (input: {
@@ -25,6 +37,17 @@ export function ExplanationView() {
       previousExplanations?: string[];
       language: string;
       userQuestion?: string;
+      authorName?: string;
+      authorStyleProfile?: {
+        name: string;
+        vocabulary: string[];
+        sentencePatterns: string[];
+        analogies: string[];
+        tone: string;
+        explanationStyle: string;
+        personality: string[];
+        sampleQuotes: string[];
+      };
     }) => {
       return await trpcClient.explanation.explainChunk.mutate(input);
     },
@@ -51,6 +74,8 @@ export function ExplanationView() {
         chunkIndex: state.currentChunkIndex,
         previousExplanations,
         language: state.language,
+        authorName: state.authorName,
+        authorStyleProfile: state.authorStyleProfile || authorStyleProfile || undefined,
       });
 
       addExplanation(state.currentChunkIndex, result.explanation);
@@ -132,9 +157,19 @@ export function ExplanationView() {
             <p className="text-sm font-medium">
               Chunk {state.currentChunkIndex + 1} of {state.chunks.length}
             </p>
-            <p className="text-xs text-muted-foreground">
-              Language: {state.language}
-            </p>
+            <div className="flex items-center gap-2 mt-1">
+              <p className="text-xs text-muted-foreground">
+                Language: {state.language}
+              </p>
+              {state.authorName && (
+                <>
+                  <span className="text-xs text-muted-foreground">•</span>
+                  <p className="text-xs font-medium text-primary">
+                    Explaining as: {state.authorName}
+                  </p>
+                </>
+              )}
+            </div>
           </div>
           <div className="flex gap-2">
             <Button
@@ -173,12 +208,28 @@ export function ExplanationView() {
         <p className="text-sm text-muted-foreground">{currentChunk}</p>
       </Card>
 
+      {/* Author Style Loading */}
+      {isLoadingAuthorStyle && state.authorName && (
+        <Card className="p-4 bg-primary/5 border-primary/20">
+          <div className="flex items-center gap-2">
+            <Loader2 className="h-4 w-4 animate-spin text-primary" />
+            <span className="text-sm text-primary">
+              Learning {state.authorName}'s speaking style...
+            </span>
+          </div>
+        </Card>
+      )}
+
       {/* Explanation */}
       {isGenerating ? (
         <Card className="p-6">
           <div className="flex items-center gap-2">
             <Loader2 className="h-4 w-4 animate-spin" />
-            <span className="text-sm">Generating explanation...</span>
+            <span className="text-sm">
+              {state.authorName
+                ? `Generating explanation in ${state.authorName}'s style...`
+                : "Generating explanation..."}
+            </span>
           </div>
         </Card>
       ) : currentExplanation ? (

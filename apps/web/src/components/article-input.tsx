@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { trpcClient } from "@/utils/trpc";
 import { useMutation } from "@tanstack/react-query";
-import { Globe } from "lucide-react";
+import { Globe, User } from "lucide-react";
 
 const LANGUAGES = [
   { code: "en", name: "English" },
@@ -28,7 +28,7 @@ const LANGUAGES = [
 export type LanguageCode = (typeof LANGUAGES)[number]["code"];
 
 interface ArticleInputProps {
-  onArticleParsed: (chunks: string[], language: LanguageCode) => void;
+  onArticleParsed: (chunks: string[], language: LanguageCode, authorName?: string) => void;
 }
 
 export function ArticleInput({ onArticleParsed }: ArticleInputProps) {
@@ -36,6 +36,7 @@ export function ArticleInput({ onArticleParsed }: ArticleInputProps) {
   const [text, setText] = useState("");
   const [url, setUrl] = useState("");
   const [selectedLanguage, setSelectedLanguage] = useState<LanguageCode>("en");
+  const [authorName, setAuthorName] = useState("");
   const [isParsing, setIsParsing] = useState(false);
 
   const parseMutation = useMutation({
@@ -57,7 +58,11 @@ export function ArticleInput({ onArticleParsed }: ArticleInputProps) {
       const result = await parseMutation.mutateAsync({
         [inputMode]: inputMode === "text" ? text : url,
       });
-      onArticleParsed(result.chunks, selectedLanguage);
+      onArticleParsed(
+        result.chunks,
+        selectedLanguage,
+        authorName.trim() || undefined
+      );
     } catch (error) {
       console.error("Failed to parse article:", error);
       alert("Failed to parse article. Please try again.");
@@ -97,6 +102,26 @@ export function ArticleInput({ onArticleParsed }: ArticleInputProps) {
             ))}
           </DropdownMenuContent>
         </DropdownMenu>
+      </div>
+
+      {/* Author Name Input (Optional) */}
+      <div className="space-y-2">
+        <div className="flex items-center gap-2">
+          <User className="h-4 w-4 text-muted-foreground" />
+          <label className="text-sm text-muted-foreground">
+            Author/Mentor (Optional):
+          </label>
+        </div>
+        <Input
+          type="text"
+          placeholder="e.g., Elon Musk, Tim Ferriss, Naval Ravikant"
+          value={authorName}
+          onChange={(e) => setAuthorName(e.target.value)}
+          className="w-full"
+        />
+        <p className="text-xs text-muted-foreground">
+          Enter an author name to get explanations in their unique speaking style
+        </p>
       </div>
 
       {/* Input Mode Toggle */}

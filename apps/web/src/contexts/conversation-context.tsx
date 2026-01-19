@@ -10,13 +10,29 @@ interface ConversationState {
   explanations: Record<number, string>;
   questions: Array<{ chunkIndex: number; question: string; answer: string }>;
   language: LanguageCode;
+  authorName?: string;
+  authorStyleProfile?: {
+    name: string;
+    vocabulary: string[];
+    sentencePatterns: string[];
+    analogies: string[];
+    tone: string;
+    explanationStyle: string;
+    personality: string[];
+    sampleQuotes: string[];
+  };
   isSpeaking: boolean;
   isListening: boolean;
 }
 
 interface ConversationContextType {
   state: ConversationState | null;
-  startConversation: (chunks: string[], language: LanguageCode) => void;
+  startConversation: (
+    chunks: string[],
+    language: LanguageCode,
+    authorName?: string
+  ) => void;
+  setAuthorStyleProfile: (profile: ConversationState["authorStyleProfile"]) => void;
   setCurrentChunk: (index: number) => void;
   addExplanation: (chunkIndex: number, explanation: string) => void;
   addQuestion: (chunkIndex: number, question: string, answer: string) => void;
@@ -32,16 +48,29 @@ const ConversationContext = createContext<ConversationContextType | undefined>(
 export function ConversationProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<ConversationState | null>(null);
 
-  const startConversation = (chunks: string[], language: LanguageCode) => {
+  const startConversation = (
+    chunks: string[],
+    language: LanguageCode,
+    authorName?: string
+  ) => {
     setState({
       chunks,
       currentChunkIndex: 0,
       explanations: {},
       questions: [],
       language,
+      authorName,
+      authorStyleProfile: undefined,
       isSpeaking: false,
       isListening: false,
     });
+  };
+
+  const setAuthorStyleProfile = (
+    profile: ConversationState["authorStyleProfile"]
+  ) => {
+    if (!state) return;
+    setState({ ...state, authorStyleProfile: profile });
   };
 
   const setCurrentChunk = (index: number) => {
@@ -84,6 +113,7 @@ export function ConversationProvider({ children }: { children: ReactNode }) {
       value={{
         state,
         startConversation,
+        setAuthorStyleProfile,
         setCurrentChunk,
         addExplanation,
         addQuestion,

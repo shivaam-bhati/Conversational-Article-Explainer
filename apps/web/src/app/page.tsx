@@ -8,8 +8,12 @@ import { Button } from "@/components/ui/button";
 export default function Home() {
   const { state, startConversation, reset } = useConversation();
 
-  const handleArticleParsed = (chunks: string[], language: string) => {
-    startConversation(chunks, language as any);
+  const handleArticleParsed = (
+    chunks: string[],
+    language: string,
+    authorName?: string
+  ) => {
+    startConversation(chunks, language as any, authorName);
   };
 
   if (!state) {
@@ -36,6 +40,7 @@ export default function Home() {
             <h1 className="text-2xl font-bold">Article Explainer</h1>
             <p className="text-sm text-muted-foreground">
               {state.chunks.length} chunks • Language: {state.language}
+              {state.authorName && ` • Explaining as: ${state.authorName}`}
             </p>
           </div>
           <Button onClick={reset} variant="outline" size="sm">

@@ -45,6 +45,19 @@ export const explanationRouter = router({
         previousExplanations: z.array(z.string()).optional(),
         language: z.string().default("en"),
         userQuestion: z.string().optional(),
+        authorName: z.string().optional(),
+        authorStyleProfile: z
+          .object({
+            name: z.string(),
+            vocabulary: z.array(z.string()),
+            sentencePatterns: z.array(z.string()),
+            analogies: z.array(z.string()),
+            tone: z.string(),
+            explanationStyle: z.string(),
+            personality: z.array(z.string()),
+            sampleQuotes: z.array(z.string()),
+          })
+          .optional(),
       })
     )
     .mutation(async ({ input }) => {
@@ -59,7 +72,38 @@ export const explanationRouter = router({
         ? input.previousExplanations.join("\n\n")
         : "";
 
-      let systemPrompt = `You are explaining an article to someone in ${languageName}. Your goal is to help them understand the content deeply, not just summarize it.
+      let systemPrompt = "";
+
+      // If author style is provided, use it
+      if (input.authorName && input.authorStyleProfile) {
+        const style = input.authorStyleProfile;
+        systemPrompt = `You are ${input.authorName} explaining an article to someone in ${languageName}. Your goal is to help them understand the content deeply, not just summarize it.
+
+IMPORTANT: You must explain in ${input.authorName}'s unique speaking style. Based on analysis of their interviews, podcasts, and speeches:
+
+**Vocabulary & Phrases**: Use their characteristic words and phrases: ${style.vocabulary.slice(0, 10).join(", ")}
+
+**Sentence Patterns**: Match their typical sentence structures: ${style.sentencePatterns.slice(0, 5).join("; ")}
+
+**Analogies**: Use their preferred types of analogies: ${style.analogies.join(", ")}
+
+**Tone**: ${style.tone}
+
+**Explanation Style**: ${style.explanationStyle}
+
+**Personality Traits**: ${style.personality.join(", ")}
+
+**Example Quotes** (for reference):
+${style.sampleQuotes.map((q) => `- "${q}"`).join("\n")}
+
+Guidelines:
+- Explain like ${input.authorName} would, in ${languageName}
+- Use their vocabulary, analogies, and explanation patterns
+- Match their tone and personality
+- Be conversational and natural in their style
+- If the user asks a question, answer it in ${input.authorName}'s style`;
+      } else {
+        systemPrompt = `You are explaining an article to someone in ${languageName}. Your goal is to help them understand the content deeply, not just summarize it.
 
 Guidelines:
 - Explain like a knowledgeable friend would, in ${languageName}
@@ -69,6 +113,7 @@ Guidelines:
 - Use analogies when helpful
 - Be conversational and natural
 - If the user asks a question, answer it directly and naturally`;
+      }
 
       let userPrompt = "";
 
