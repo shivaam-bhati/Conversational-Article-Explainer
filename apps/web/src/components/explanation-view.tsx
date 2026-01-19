@@ -76,7 +76,7 @@ export function ExplanationView() {
     setIsGenerating(true);
     try {
       const previousExplanations = Object.keys(state.explanations)
-        .sort((a, b) => Number(a) - Number(b))
+        .toSorted((a, b) => Number(a) - Number(b))
         .map((key) => state.explanations[Number(key)]);
 
       const profileToUse = state.authorStyleProfile || authorStyleProfile;

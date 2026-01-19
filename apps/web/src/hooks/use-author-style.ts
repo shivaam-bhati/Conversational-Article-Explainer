@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { trpcClient } from "@/utils/trpc";
 import { useMutation } from "@tanstack/react-query";
 
+const STORAGE_KEY_VERSION = "v1";
+
 interface AuthorStyleProfile {
   name: string;
   vocabulary: string[];
@@ -13,6 +15,26 @@ interface AuthorStyleProfile {
   sampleQuotes: string[];
 }
 
+function getCachedProfile(authorName: string): AuthorStyleProfile | null {
+  try {
+    const raw = sessionStorage.getItem(`author-style-${STORAGE_KEY_VERSION}-${authorName}`);
+    return raw ? (JSON.parse(raw) as AuthorStyleProfile) : null;
+  } catch {
+    return null;
+  }
+}
+
+function setCachedProfile(authorName: string, profile: AuthorStyleProfile): void {
+  try {
+    sessionStorage.setItem(
+      `author-style-${STORAGE_KEY_VERSION}-${authorName}`,
+      JSON.stringify(profile)
+    );
+  } catch {
+    // sessionStorage can throw in private browsing or when quota exceeded
+  }
+}
+
 export function useAuthorStyle(authorName?: string) {
   const [profile, setProfile] = useState<AuthorStyleProfile | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -22,7 +44,7 @@ export function useAuthorStyle(authorName?: string) {
     mutationFn: async (name: string) => {
       return await trpcClient.author.getAuthorStyle.mutate({
         authorName: name,
-        useLLMKnowledge: true, // For MVP, use LLM knowledge
+        useLLMKnowledge: true,
       });
     },
   });
@@ -34,15 +56,10 @@ export function useAuthorStyle(authorName?: string) {
       return;
     }
 
-    // Check if we already have this profile cached
-    const cachedProfile = sessionStorage.getItem(`author-style-${authorName}`);
-    if (cachedProfile) {
-      try {
-        setProfile(JSON.parse(cachedProfile));
-        return;
-      } catch {
-        // Invalid cache, continue to fetch
-      }
+    const cached = getCachedProfile(authorName);
+    if (cached) {
+      setProfile(cached);
+      return;
     }
 
     setIsLoading(true);
@@ -51,11 +68,7 @@ export function useAuthorStyle(authorName?: string) {
     fetchStyleMutation.mutate(authorName, {
       onSuccess: (data) => {
         setProfile(data.profile);
-        // Cache the profile
-        sessionStorage.setItem(
-          `author-style-${authorName}`,
-          JSON.stringify(data.profile)
-        );
+        setCachedProfile(authorName, data.profile);
         setIsLoading(false);
       },
       onError: (err) => {

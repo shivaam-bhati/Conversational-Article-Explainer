@@ -34,7 +34,7 @@ export function QuestionHandler({ question, onComplete }: QuestionHandlerProps) 
     try {
       const currentChunk = state.chunks[state.currentChunkIndex];
       const previousExplanations = Object.keys(state.explanations)
-        .sort((a, b) => Number(a) - Number(b))
+        .toSorted((a, b) => Number(a) - Number(b))
         .map((key) => state.explanations[Number(key)]);
 
       const result = await explainMutation.mutateAsync({

@@ -69,39 +69,43 @@ export function ConversationProvider({ children }: { children: ReactNode }) {
   const setAuthorStyleProfile = (
     profile: ConversationState["authorStyleProfile"]
   ) => {
-    if (!state) return;
-    setState({ ...state, authorStyleProfile: profile });
+    setState((prev) =>
+      prev ? { ...prev, authorStyleProfile: profile } : prev
+    );
   };
 
   const setCurrentChunk = (index: number) => {
-    if (!state) return;
-    setState({ ...state, currentChunkIndex: index });
+    setState((prev) => (prev ? { ...prev, currentChunkIndex: index } : prev));
   };
 
   const addExplanation = (chunkIndex: number, explanation: string) => {
-    if (!state) return;
-    setState({
-      ...state,
-      explanations: { ...state.explanations, [chunkIndex]: explanation },
-    });
+    setState((prev) =>
+      prev
+        ? {
+            ...prev,
+            explanations: { ...prev.explanations, [chunkIndex]: explanation },
+          }
+        : prev
+    );
   };
 
   const addQuestion = (chunkIndex: number, question: string, answer: string) => {
-    if (!state) return;
-    setState({
-      ...state,
-      questions: [...state.questions, { chunkIndex, question, answer }],
-    });
+    setState((prev) =>
+      prev
+        ? {
+            ...prev,
+            questions: [...prev.questions, { chunkIndex, question, answer }],
+          }
+        : prev
+    );
   };
 
   const setIsSpeaking = (speaking: boolean) => {
-    if (!state) return;
-    setState({ ...state, isSpeaking: speaking });
+    setState((prev) => (prev ? { ...prev, isSpeaking: speaking } : prev));
   };
 
   const setIsListening = (listening: boolean) => {
-    if (!state) return;
-    setState({ ...state, isListening: listening });
+    setState((prev) => (prev ? { ...prev, isListening: listening } : prev));
   };
 
   const reset = () => {
