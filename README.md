@@ -302,11 +302,6 @@ Built with inspiration from the idea that **learning happens best through dialog
 - The open-source TTS community (Coqui, GPT-SoVITS, Muyan-TTS)
 - All the mentors and thought leaders who share their knowledge publicly
 
----
-
-## 📄 License
-
-[Add your license here]
 
 ---
 
