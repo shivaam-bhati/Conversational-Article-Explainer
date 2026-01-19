@@ -24,11 +24,26 @@ export function ExplanationView() {
     useAuthorStyle(state?.authorName);
 
   // Store author style profile in context when fetched
+  // Only update if profile actually changed to avoid infinite loops
   useEffect(() => {
-    if (authorStyleProfile && state?.authorName) {
-      setAuthorStyleProfile(authorStyleProfile);
+    if (
+      authorStyleProfile &&
+      state?.authorName &&
+      state.authorName === authorStyleProfile.name
+    ) {
+      // Only update if the profile is different from what's already stored
+      const currentProfile = state.authorStyleProfile;
+      if (
+        !currentProfile ||
+        currentProfile.name !== authorStyleProfile.name ||
+        JSON.stringify(currentProfile) !== JSON.stringify(authorStyleProfile)
+      ) {
+        console.log("Setting author style profile:", authorStyleProfile.name);
+        setAuthorStyleProfile(authorStyleProfile);
+      }
     }
-  }, [authorStyleProfile, state?.authorName, setAuthorStyleProfile]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authorStyleProfile?.name, state?.authorName]); // Only depend on profile name and author name
 
   const explainMutation = useMutation({
     mutationFn: async (input: {
@@ -69,13 +84,22 @@ export function ExplanationView() {
         .sort((a, b) => Number(a) - Number(b))
         .map((key) => state.explanations[Number(key)]);
 
+      // Use the profile from state (which should be set by the useEffect) or fallback to the hook's profile
+      const profileToUse = state.authorStyleProfile || authorStyleProfile;
+      
+      console.log("Generating explanation with:", {
+        authorName: state.authorName,
+        hasProfile: !!profileToUse,
+        profileName: profileToUse?.name,
+      });
+
       const result = await explainMutation.mutateAsync({
         chunk: currentChunk,
         chunkIndex: state.currentChunkIndex,
         previousExplanations,
         language: state.language,
         authorName: state.authorName,
-        authorStyleProfile: state.authorStyleProfile || authorStyleProfile || undefined,
+        authorStyleProfile: profileToUse || undefined,
       });
 
       addExplanation(state.currentChunkIndex, result.explanation);

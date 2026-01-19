@@ -9,9 +9,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Play, Pause, Square, Volume2, Settings2 } from "lucide-react";
+import { Play, Pause, Square, Volume2, Settings2, Loader2 } from "lucide-react";
 import { useConversation } from "@/contexts/conversation-context";
 import type { LanguageCode } from "@/components/article-input";
+import { trpcClient } from "@/utils/trpc";
+import { useMutation } from "@tanstack/react-query";
 
 // Language code mapping for Web Speech API
 const TTS_LANGUAGE_MAP: Record<LanguageCode, string> = {
@@ -23,6 +25,8 @@ const TTS_LANGUAGE_MAP: Record<LanguageCode, string> = {
   zh: "zh-CN",
   ja: "ja-JP",
 };
+
+type TTSMethod = "web-speech" | "gpt-sovits";
 
 interface VoiceOutputProps {
   text: string;
@@ -84,8 +88,22 @@ export function VoiceOutput({ text, language, onComplete }: VoiceOutputProps) {
   const [isPaused, setIsPaused] = useState(false);
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [selectedVoice, setSelectedVoice] = useState<SpeechSynthesisVoice | null>(null);
+  const [ttsMethod, setTtsMethod] = useState<TTSMethod>("web-speech");
+  const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
-  const { setIsSpeaking: setGlobalSpeaking } = useConversation();
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const { state, setIsSpeaking: setGlobalSpeaking } = useConversation();
+
+  // GPT-SoVITS mutation
+  const gptSoVITSMutation = useMutation({
+    mutationFn: async (input: {
+      text: string;
+      language: string;
+      authorName?: string;
+    }) => {
+      return await trpcClient.tts.generateSpeech.mutate(input);
+    },
+  });
 
   // Load and filter voices for the selected language
   useEffect(() => {
@@ -125,7 +143,89 @@ export function VoiceOutput({ text, language, onComplete }: VoiceOutputProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [language]);
 
-  const speak = () => {
+  // Auto-select TTS method based on author and reference audio availability
+  // Note: GPT-SoVITS requires a reference audio URL, so we'll use Web Speech API
+  // until audio sample collection is implemented
+  useEffect(() => {
+    // For now, always use Web Speech API since we don't have reference audio URLs yet
+    // Once audio sample collection is implemented, check for referenceAudioUrl here
+    setTtsMethod("web-speech");
+    
+    // Future: When reference audio is available
+    // if (state?.authorName && state?.authorAudioUrl) {
+    //   setTtsMethod("gpt-sovits");
+    // } else {
+    //   setTtsMethod("web-speech");
+    // }
+  }, [state?.authorName]);
+
+  const speakWithGPTSoVITS = async () => {
+    setIsGeneratingAudio(true);
+    try {
+      // For now, GPT-SoVITS requires a reference audio URL
+      // Since we don't have audio samples yet, we'll fallback to Web Speech API
+      // TODO: Once audio sample collection is implemented, pass referenceAudioUrl here
+      const result = await gptSoVITSMutation.mutateAsync({
+        text,
+        language,
+        authorName: state?.authorName,
+        // referenceAudioUrl: state?.authorAudioUrl, // Will be added when audio samples are available
+      });
+
+      if (result.error || !result.audioUrl) {
+        // Fallback to Web Speech API if GPT-SoVITS fails or no reference audio
+        console.warn(
+          "GPT-SoVITS unavailable (reference audio required), falling back to Web Speech API:",
+          result.error || "No reference audio URL provided"
+        );
+        speakWithWebSpeech();
+        return;
+      }
+
+      if (result.audioUrl) {
+        // Play audio using HTML5 Audio
+        const audio = new Audio(result.audioUrl);
+        audioRef.current = audio;
+
+        audio.onplay = () => {
+          setIsSpeaking(true);
+          setIsPaused(false);
+          setGlobalSpeaking(true);
+          setIsGeneratingAudio(false);
+        };
+
+        audio.onpause = () => {
+          setIsPaused(true);
+        };
+
+        audio.onended = () => {
+          setIsSpeaking(false);
+          setIsPaused(false);
+          setGlobalSpeaking(false);
+          setIsGeneratingAudio(false);
+          onComplete?.();
+        };
+
+        audio.onerror = () => {
+          console.error("Audio playback error");
+          setIsGeneratingAudio(false);
+          setIsSpeaking(false);
+          setGlobalSpeaking(false);
+          // Fallback to Web Speech API
+          speakWithWebSpeech();
+        };
+
+        await audio.play();
+      }
+    } catch (error) {
+      console.error("GPT-SoVITS error:", error);
+      setIsGeneratingAudio(false);
+      // Fallback to Web Speech API
+      speakWithWebSpeech();
+    }
+  };
+
+  const speakWithWebSpeech = () => {
     if (!("speechSynthesis" in window)) {
       alert("Your browser doesn't support text-to-speech");
       return;
@@ -204,30 +304,55 @@ export function VoiceOutput({ text, language, onComplete }: VoiceOutputProps) {
     window.speechSynthesis.speak(utterance);
   };
 
+  const speak = () => {
+    if (ttsMethod === "gpt-sovits") {
+      speakWithGPTSoVITS();
+    } else {
+      speakWithWebSpeech();
+    }
+  };
+
   const pause = () => {
-    if (window.speechSynthesis.speaking && !window.speechSynthesis.paused) {
+    if (ttsMethod === "gpt-sovits" && audioRef.current) {
+      audioRef.current.pause();
+      setIsPaused(true);
+    } else if (window.speechSynthesis.speaking && !window.speechSynthesis.paused) {
       window.speechSynthesis.pause();
       setIsPaused(true);
     }
   };
 
   const resume = () => {
-    if (window.speechSynthesis.paused) {
+    if (ttsMethod === "gpt-sovits" && audioRef.current) {
+      audioRef.current.play();
+      setIsPaused(false);
+    } else if (window.speechSynthesis.paused) {
       window.speechSynthesis.resume();
       setIsPaused(false);
     }
   };
 
   const stop = () => {
-    window.speechSynthesis.cancel();
+    if (ttsMethod === "gpt-sovits" && audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+      audioRef.current = null;
+    } else {
+      window.speechSynthesis.cancel();
+    }
     setIsSpeaking(false);
     setIsPaused(false);
     setGlobalSpeaking(false);
+    setIsGeneratingAudio(false);
   };
 
   // Cancel any ongoing speech when component unmounts or text changes
   useEffect(() => {
     return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
       window.speechSynthesis.cancel();
     };
   }, [text]);
@@ -242,9 +367,22 @@ export function VoiceOutput({ text, language, onComplete }: VoiceOutputProps) {
         <div className="flex items-center gap-2">
           <Volume2 className="h-4 w-4 text-muted-foreground" />
           <span className="text-sm font-medium">Voice Output</span>
-          {isSpeaking && (
+          {isGeneratingAudio && (
+            <span className="text-xs text-primary flex items-center gap-1">
+              <Loader2 className="h-3 w-3 animate-spin" />
+              Generating voice...
+            </span>
+          )}
+          {isSpeaking && !isGeneratingAudio && (
             <span className="text-xs text-muted-foreground animate-pulse">
-              Speaking...
+              {ttsMethod === "gpt-sovits" && state?.authorName
+                ? `Speaking as ${state.authorName}...`
+                : "Speaking..."}
+            </span>
+          )}
+          {state?.authorName && (
+            <span className="text-xs text-muted-foreground">
+              ({ttsMethod === "gpt-sovits" ? "GPT-SoVITS" : "Web Speech API - Reference audio needed for voice cloning"})
             </span>
           )}
         </div>
