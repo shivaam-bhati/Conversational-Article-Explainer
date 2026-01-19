@@ -1,308 +1,272 @@
 # MVP Build Plan - Conversational Article Explainer
 
 ## Overview
-Build a minimal viable product that validates the core conversational article explanation experience in **2-3 weeks**.
+Build a minimal viable product that validates the core conversational article explanation experience with **author voice/style feature** and **GPT-SoVITS voice cloning** in **4 weeks**.
 
 ---
 
-## Phase 1: Foundation Setup (Days 1-2)
+## ✅ What's Already Built
 
-### 1.1 Project Structure
-- [ ] Choose tech stack (Recommendation: Next.js + TypeScript for web, or simple React)
-- [ ] Set up repository structure
-- [ ] Initialize project with dependencies
-- [ ] Set up basic routing (single page for MVP)
+### Phase 1: Foundation Setup ✅
+- ✅ Project structure (Next.js monorepo with Turborepo)
+- ✅ Tech stack setup (Next.js 16, TypeScript, Tailwind, shadcn/ui)
+- ✅ Dependencies installed (OpenAI, Readability, JSDOM)
+- ✅ Basic routing and app structure
 
-### 1.2 Core Dependencies
-- [ ] AI/LLM SDK (OpenAI API or Anthropic Claude API)
-- [ ] Text-to-Speech library (Free options: Web Speech API, Coqui XTTS-v2, GPT-SoVITS, or Muyan-TTS)
-- [ ] Speech-to-Text (Web Speech API or similar)
-- [ ] URL/article parser (readability, cheerio, or simple fetch)
-- [ ] Web scraping/search tools for author content gathering (optional for MVP)
+### Phase 2: Article Ingestion ✅
+- ✅ Article input component (text/URL)
+- ✅ Language selector (7 languages)
+- ✅ Article parsing API (tRPC)
+- ✅ URL fetching with Readability.js
+- ✅ Paragraph-based chunking
+- ❌ **MISSING**: Author name input field
 
-**Tech Stack Recommendation:**
-```
-Frontend: Next.js 14+ (App Router) + TypeScript + Tailwind CSS
-AI: OpenAI API (GPT-4) or Anthropic Claude API
-Voice: Web Speech API (native browser) - FREE
-      OR Coqui XTTS-v2 (open-source, free) - for better quality
-      OR GPT-SoVITS (zero-shot voice cloning, free)
-      OR Muyan-TTS (low-latency, customizable, free)
-Article Parsing: Readability.js or Cheerio
-State: React Context or Zustand (simple state management)
-Author Style: LLM prompt engineering + web search for author content
-```
+### Phase 3: AI Explanation Engine ✅
+- ✅ OpenAI integration (GPT-4o-mini)
+- ✅ Explanation API (tRPC)
+- ✅ Context-aware explanations
+- ✅ Multi-language support
+- ✅ Question answering
+- ❌ **MISSING**: Author style integration in prompts
 
----
+### Phase 4: Voice Output (Basic) ✅
+- ✅ Web Speech API integration
+- ✅ Multi-language TTS
+- ✅ Play, pause, resume, stop controls
+- ✅ Visual feedback
+- ❌ **MISSING**: GPT-SoVITS integration
+- ❌ **MISSING**: Author voice cloning
 
-## Phase 2: Article Ingestion (Days 3-4)
+### Phase 5: Voice Input ✅
+- ✅ Web Speech Recognition API
+- ✅ Voice commands (continue, next, repeat, previous, stop)
+- ✅ Question detection
+- ✅ Real-time transcription
 
-### 2.1 Input Component
-- [ ] Create text input area (textarea)
-- [ ] Create URL input field
-- [ ] Add language selector dropdown (English, Spanish, French, German, Hindi, etc.)
-- [ ] **Add author name input field** (optional, for mentor voice feature)
-- [ ] Store selected language in state
-- [ ] Store author name in state (if provided)
-- [ ] Add "Paste Article" button
-- [ ] Basic URL validation
+### Phase 6: Conversation State ✅
+- ✅ Conversation context (React Context)
+- ✅ Chunk tracking
+- ✅ Explanation history
+- ✅ Q&A pairs
+- ❌ **MISSING**: Author name and style profile storage
 
-### 2.2 Article Parsing
-- [ ] Build URL fetcher (simple fetch with CORS handling)
-- [ ] Extract main content from HTML (use readability or simple parsing)
-- [ ] Clean text (remove extra whitespace, normalize)
-- [ ] Basic error handling (invalid URL, network errors)
-
-### 2.3 Text Chunking
-- [ ] Split article by paragraphs (simple `.split('\n\n')`)
-- [ ] Filter empty chunks
-- [ ] Store chunks in state
-- [ ] **Simple approach**: Paragraph-based, not semantic (for MVP)
-
-**Deliverable**: User can paste article/URL and see it parsed into chunks
+### Phase 7: UI Components ✅
+- ✅ Article input UI
+- ✅ Explanation view
+- ✅ Voice controls
+- ✅ Progress indicators
+- ✅ Chunk navigation
+- ❌ **MISSING**: Author input field
+- ❌ **MISSING**: Author style indicator
 
 ---
 
-## Phase 3: AI Explanation Engine (Days 5-8)
+## 🚧 What's Left to Build
 
-### 3.1 LLM Integration
-- [ ] Set up API client (OpenAI/Anthropic)
-- [ ] Create explanation prompt template
-- [ ] Build function to explain single chunk:
-   - Input: chunk text, context (what was explained before)
-   - Output: conversational explanation text
+### Phase 8: Author Style Learning (Days 1-5) - **KEY DIFFERENTIATOR**
 
-### 3.2 Prompt Engineering
-- [ ] Craft base prompt: "Explain this article chunk conversationally, as if talking to a friend"
-- [ ] Include context from previous chunks
-- [ ] Include language instruction (explain in selected language)
-- [ ] **Add author style instruction** (if author name provided)
-- [ ] Instruct AI to use simple language, analogies
-- [ ] Add instruction to end each explanation with a pause prompt (in selected language)
+#### 8.1 Author Input UI
+- [ ] Add author name input field to `article-input.tsx`
+  - Text input with placeholder: "e.g., Elon Musk, Tim Ferriss"
+  - Optional field (can be left empty)
+  - Store in conversation state
+- [ ] Add author style indicator to `explanation-view.tsx`
+  - Show "Explaining as [Author Name]" when author selected
+  - Visual badge/indicator
+- [ ] Update conversation context to store author name
 
-**Sample Prompt Structure (Without Author):**
+#### 8.2 Author Content Gathering
+- [ ] Create author search API endpoint (`packages/api/src/routers/author.ts`)
+  - Input: author name
+  - Search for:
+    - YouTube video transcripts (using YouTube API or scraping)
+    - Podcast transcripts (Spotify, Apple Podcasts, etc.)
+    - Interview transcripts (public sources)
+    - Public speeches and talks
+- [ ] Implement web search integration
+  - Option 1: Use SerpAPI, Google Custom Search, or similar
+  - Option 2: Scrape public transcript sites
+  - Option 3: Use LLM to generate search queries and fetch results
+- [ ] Extract transcripts from URLs
+  - YouTube: Use `youtube-transcript-api` or similar
+  - Podcasts: Extract from RSS feeds or transcript sites
+  - Articles: Use Readability.js (already installed)
+- [ ] Store author metadata
+  - Name, profession, known for, sources found
+
+#### 8.3 Style Analysis
+- [ ] Create style analysis function
+  - Input: Author transcripts (array of text)
+  - Analyze using LLM:
+    - Vocabulary preferences
+    - Sentence structure and length
+    - Common phrases and expressions
+    - Analogies and examples used
+    - Tone and personality
+    - Pace indicators (from punctuation)
+    - Explanation patterns
+- [ ] Generate style profile (JSON structure)
+```typescript
+interface AuthorStyleProfile {
+  name: string;
+  vocabulary: string[]; // Common words/phrases
+  sentencePatterns: string[]; // Typical sentence structures
+  analogies: string[]; // Types of analogies used
+  tone: string; // Formal/casual, energetic/calm, etc.
+  explanationStyle: string; // How they break down topics
+  personality: string[]; // Key traits
+  sampleQuotes: string[]; // Example quotes
+}
 ```
-You are explaining an article to someone in [selected language]. You've already explained: [previous chunks].
-Now explain this part: [current chunk]
+- [ ] Cache style profiles (in-memory for MVP)
+  - Store in conversation context or global state
+  - Don't re-analyze same author in same session
 
-Explain it like a knowledgeable friend would in [selected language]:
-- Use simple language
-- Avoid jargon unless explained
-- Add context from previous parts when relevant
-- End with: "Does that make sense, or would you like me to clarify anything?" (in [selected language])
-```
+#### 8.4 Integration with Explanation Engine
+- [ ] Update `explanation.ts` router
+  - Add `authorName` and `authorStyleProfile` to input schema
+  - Modify prompts to include author style
+- [ ] Update prompt engineering
+  - Include author style profile in system prompt
+  - Instruct AI to match vocabulary, analogies, tone
+  - Maintain consistency throughout conversation
+- [ ] Update `explanation-view.tsx`
+  - Pass author name and profile to explanation API
+  - Show loading state: "Learning [Author Name]'s style..."
 
-**Sample Prompt Structure (With Author Style):**
-```
-You are [Author Name] explaining an article to someone in [selected language]. You've already explained: [previous chunks].
-Now explain this part: [current chunk]
-
-Based on [Author Name]'s speaking style from interviews and podcasts:
-- [Author's speaking patterns, vocabulary, analogies, pace]
-- [Author's typical explanations and teaching style]
-- [Author's tone and personality traits]
-
-Explain this chunk in [Author Name]'s unique style in [selected language]:
-- Use their characteristic vocabulary and phrases
-- Match their explanation style and analogies
-- Maintain their tone and personality
-- End with: "Does that make sense, or would you like me to clarify anything?" (in [selected language], in [Author Name]'s style)
-```
-
-### 3.3 Chunk Processing Loop
-- [ ] Track current chunk index
-- [ ] Generate explanation for current chunk
-- [ ] Store explanation in state
-- [ ] Move to next chunk on continue
-
-**Deliverable**: AI generates conversational explanations for each chunk
+**Deliverable**: System can learn author style and apply it to explanations
 
 ---
 
-## Phase 4: Author Style Learning (Days 9-11) - **KEY DIFFERENTIATOR**
+### Phase 9: GPT-SoVITS Integration (Days 6-10)
 
-### 4.1 Author Input & Search
-- [ ] Create author name input field in UI
-- [ ] Build author search/discovery function
-- [ ] Search for author interviews, podcasts, public speeches (using web search API or scraping)
-- [ ] Collect transcripts or audio content (YouTube transcripts, podcast transcripts, interview archives)
-- [ ] Store author metadata (name, profession, known for)
+#### 9.1 GPT-SoVITS Setup
+- [ ] Research GPT-SoVITS installation options
+  - Option 1: Local server (Python backend)
+  - Option 2: Cloud deployment (Hugging Face Spaces, Replicate, etc.)
+  - Option 3: API service (if available)
+- [ ] Set up GPT-SoVITS server
+  - Install dependencies (Python, PyTorch, etc.)
+  - Download pre-trained models
+  - Configure API endpoint
+- [ ] Create TTS API wrapper (`packages/api/src/routers/tts.ts`)
+  - Input: text, language, author name (optional)
+  - Output: audio file URL or base64 audio
+  - Handle voice cloning if author audio sample available
 
-### 4.2 Style Analysis
-- [ ] Extract speaking patterns from transcripts:
-  - Vocabulary preferences
-  - Sentence structure and length
-  - Common phrases and expressions
-  - Analogies and examples used
-  - Pace and rhythm indicators
-  - Tone and personality markers
-- [ ] Analyze writing style (if books/articles available):
-  - Writing patterns
-  - Explanation methods
-  - Teaching style
-- [ ] Build author style profile (JSON structure)
+#### 9.2 Author Voice Sample Collection
+- [ ] Extend author search to find audio samples
+  - YouTube videos (extract audio)
+  - Podcast episodes (download audio)
+  - Public speeches (audio files)
+- [ ] Audio processing
+  - Extract 5-10 second samples (GPT-SoVITS requirement)
+  - Clean audio (remove background noise)
+  - Normalize audio levels
+- [ ] Store audio samples
+  - Temporary storage (for MVP)
+  - Link to author profile
 
-### 4.3 Style Profile Storage
-- [ ] Create style profile data structure
-- [ ] Cache author profiles (in-memory for MVP, database later)
-- [ ] Handle cases where author content is not found
-- [ ] Provide fallback to generic conversational style
+#### 9.3 Voice Cloning Integration
+- [ ] Update `voice-output.tsx` component
+  - Add GPT-SoVITS option (toggle or auto-detect)
+  - Fallback to Web Speech API if GPT-SoVITS unavailable
+  - Handle audio playback (HTML5 Audio API)
+- [ ] Implement voice cloning flow
+  1. Check if author audio sample exists
+  2. If yes, use GPT-SoVITS with sample
+  3. If no, use GPT-SoVITS default voice or Web Speech API
+- [ ] Audio streaming/buffering
+  - Stream audio chunks for long explanations
+  - Show loading state during generation
+  - Handle errors gracefully
 
-**Deliverable**: System can learn and store author speaking/writing style patterns
+#### 9.4 UI Updates
+- [ ] Add voice selection in UI
+  - Show current voice: "Web Speech API" or "[Author Name]'s Voice"
+  - Toggle between options
+- [ ] Show voice cloning status
+  - "Cloning [Author Name]'s voice..." when processing
+  - "Using [Author Name]'s voice" when ready
+- [ ] Audio controls
+  - Play, pause, resume, stop (already exists, update for audio files)
 
----
-
-## Phase 5: Voice Output (Days 12-14)
-
-### 5.1 Text-to-Speech Setup
-- [ ] **Primary: Integrate Web Speech API** (free, browser-native)
-- [ ] **Optional Upgrade: Integrate free TTS options:**
-  - Coqui XTTS-v2 (open-source, voice cloning capable)
-  - GPT-SoVITS (zero-shot voice cloning from 5-sec sample)
-  - Muyan-TTS (low-latency, customizable)
-- [ ] Configure language selection for TTS (use selected language)
-- [ ] **If using voice cloning: Set up voice cloning for author** (if audio samples available)
-- [ ] Test voice selection (if browser API)
-- [ ] Map selected languages to TTS language codes
-- [ ] Handle TTS errors gracefully
-- [ ] Handle unsupported language fallbacks
-
-### 5.2 Speech Controls
-- [ ] Play explanation when generated
-- [ ] Pause button (pause TTS)
-- [ ] Resume button (resume TTS)
-- [ ] Stop button (stop and reset)
-
-### 5.3 Audio Feedback
-- [ ] Visual indicator when speaking (simple animation)
-- [ ] Show current explanation text (optional, for debugging)
-- [ ] Show author name if using author style (e.g., "Explaining as [Author Name]")
-- [ ] Handle browser autoplay restrictions
-
-**Deliverable**: Explanations are spoken aloud via voice synthesis (with optional author voice cloning)
+**Deliverable**: Voice output uses GPT-SoVITS with optional author voice cloning
 
 ---
 
-## Phase 6: User Interaction (Days 15-17)
+### Phase 10: Integration & Polish (Days 11-14)
 
-### 6.1 Basic Voice Input
-- [ ] Set up Speech-to-Text (Web Speech API)
-- [ ] Add "Ask Question" / "Continue" button
-- [ ] Or: Always-on voice input (optional for MVP)
-- [ ] Convert speech to text
+#### 10.1 End-to-End Integration
+- [ ] Test full flow:
+  1. User enters article + author name
+  2. System searches for author content
+  3. System analyzes style
+  4. System explains article in author's style
+  5. System speaks using author's voice (if available)
+- [ ] Handle edge cases:
+  - Author not found → fallback to generic style
+  - Insufficient content → use available data, warn user
+  - Audio sample not found → use GPT-SoVITS default or Web Speech API
+  - GPT-SoVITS server down → fallback to Web Speech API
 
-### 6.2 Simple Command Handling
-- [ ] Parse user input for keywords:
-   - "continue" / "next" → move to next chunk
-   - "repeat" / "say that again" → replay current explanation
-   - "explain more" → ask AI to elaborate
-   - Question → send to AI for answer
-
-### 6.3 Question Handling
-- [ ] Detect if input is a question
-- [ ] Send to LLM with context (current chunk, previous explanations, selected language)
-- [ ] Generate answer (in selected language)
-- [ ] Speak answer (using TTS with selected language)
-- [ ] Resume explanation after answer
-
-**Sample Q&A Prompt:**
-```
-The user is reading an article. Respond in [selected language]. You've explained: [context].
-Current focus: [current chunk]
-User asked: [question]
-
-Answer their question naturally in [selected language], then ask if they want to continue with the article.
-```
-
-**Deliverable**: Users can interact via voice/buttons and get responses
-
----
-
-## Phase 7: Conversation State Management (Days 18-19)
-
-### 7.1 State Tracking
-- [ ] Track conversation history (explanations given, questions asked)
-- [ ] Track current position in article
-- [ ] Store selected language preference
-- [ ] **Store author name and style profile** (if provided)
-- [ ] Store user preferences (if any basic ones)
-
-### 7.2 Context Continuity
-- [ ] Pass conversation history to LLM for each explanation
-- [ ] **Pass author style profile to LLM** (if author selected)
-- [ ] Ensure AI references previous explanations when relevant
-- [ ] Maintain context across question-answer pairs
-- [ ] Maintain author style consistency throughout conversation
-
-### 7.3 Session Management
-- [ ] Handle session start/stop
-- [ ] Reset state on new article
-- [ ] **Cache author profiles** (don't re-fetch same author)
-- [ ] Handle errors gracefully (network, API failures)
-
-**Deliverable**: Conversation maintains context and feels continuous (with author style if selected)
-
----
-
-## Phase 8: UI Polish & Testing (Days 20-24)
-
-### 8.1 UI Components
-- [ ] Design simple, clean interface
-- [ ] Input area for article/URL
-- [ ] Language selector dropdown (with language names in native language)
-- [ ] **Author name input field** (optional, with helper text: "e.g., Elon Musk, Tim Ferriss")
-- [ ] **Author style indicator** (show when author is selected: "Explaining as [Author Name]")
-- [ ] **Author profile loading state** (show "Learning [Author Name]'s style..." when fetching)
-- [ ] "Start Explaining" button
-- [ ] Controls: Pause, Resume, Stop
-- [ ] Visual feedback: speaking indicator, loading states, current language display
-
-### 8.2 Error Handling
-- [ ] Handle API errors (rate limits, network failures)
-- [ ] Handle invalid URLs
-- [ ] Handle empty articles
-- [ ] **Handle author not found** (graceful fallback to generic style)
-- [ ] **Handle insufficient author content** (warn user, use available data)
+#### 10.2 Error Handling
 - [ ] User-friendly error messages
+  - "Couldn't find enough content for [Author Name]. Using generic style."
+  - "Voice cloning unavailable. Using standard voice."
+  - "Author style analysis failed. Continuing with standard explanation."
+- [ ] Loading states
+  - "Searching for [Author Name]'s content..."
+  - "Analyzing [Author Name]'s speaking style..."
+  - "Generating voice clone..."
+  - "Explaining as [Author Name]..."
 
-### 8.3 Testing
-- [ ] Test with various article types (news, technical, long-form)
-- [ ] Test voice input/output in different browsers
-- [ ] Test conversation flow end-to-end
-- [ ] **Test author style feature** (try different authors: Elon Musk, Tim Ferriss, etc.)
-- [ ] **Test author style accuracy** (verify explanations match author's style)
-- [ ] Fix bugs and edge cases
+#### 10.3 Performance Optimization
+- [ ] Cache author profiles (don't re-analyze)
+- [ ] Cache audio samples (don't re-download)
+- [ ] Parallel API calls (search + analyze simultaneously)
+- [ ] Optimize GPT-SoVITS requests (batch if possible)
 
-### 8.4 Performance
-- [ ] Optimize chunk processing (don't process all at once)
-- [ ] Cache explanations (don't regenerate same chunk)
-- [ ] **Cache author profiles** (don't re-analyze same author)
-- [ ] Handle long articles (loading states)
-- [ ] **Optimize author content fetching** (parallel requests, timeout handling)
+#### 10.4 Testing
+- [ ] Test with various authors:
+  - Well-known: Elon Musk, Tim Ferriss, Naval Ravikant
+  - Less known: Test fallback behavior
+- [ ] Test style accuracy
+  - Compare explanations with/without author style
+  - Verify vocabulary and analogies match
+- [ ] Test voice cloning
+  - Verify voice similarity
+  - Test with different audio samples
+- [ ] Test error scenarios
+  - Network failures
+  - API timeouts
+  - Invalid authors
 
-**Deliverable**: Polished, working MVP ready for user testing (with author voice/style feature)
+**Deliverable**: Fully integrated, polished MVP with author style and voice cloning
 
 ---
 
-## Phase 9: Deployment & Documentation (Days 25-26)
+### Phase 11: Documentation & Deployment (Days 15-16)
 
-### 9.1 Deployment
-- [ ] Deploy to Vercel/Netlify (frontend)
-- [ ] Set up environment variables (API keys)
-- [ ] Configure CORS if needed
+#### 11.1 Documentation
+- [ ] Update README with GPT-SoVITS setup instructions
+- [ ] Document author style feature
+- [ ] Add API documentation
+- [ ] Create setup guide for GPT-SoVITS server
+
+#### 11.2 Deployment
+- [ ] Deploy GPT-SoVITS server (if separate)
+  - Options: Hugging Face Spaces, Replicate, or self-hosted
+- [ ] Deploy frontend (Vercel/Netlify)
+- [ ] Deploy API (Vercel/Netlify serverless)
+- [ ] Set up environment variables
 - [ ] Test production build
 
-### 9.2 Documentation
-- [ ] Write README with setup instructions
-- [ ] Document API usage
-- [ ] Create simple demo video/walkthrough
-- [ ] Prepare user testing guide
-
-**Deliverable**: MVP deployed and ready for validation
+**Deliverable**: MVP deployed and ready for user testing
 
 ---
 
-## Technical Architecture (MVP)
+## Technical Architecture (Updated)
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -329,12 +293,32 @@ Answer their question naturally in [selected language], then ask if they want to
         ┌────────────┼────────────┐
         │            │            │
    ┌────▼────┐  ┌───▼────┐  ┌───▼────────┐
-   │   LLM   │  │  Web   │  │ Free TTS   │
-   │   API   │  │ Search │  │ (Coqui/    │
-   │(OpenAI/ │  │  API   │  │ GPT-SoVITS)│
+   │   LLM   │  │  Web   │  │ GPT-SoVITS │
+   │   API   │  │ Search │  │   Server   │
+   │(OpenAI/ │  │  API   │  │            │
    │ Claude) │  │        │  │            │
    └─────────┘  └────────┘  └────────────┘
 ```
+
+---
+
+## Dependencies to Add
+
+### Backend (packages/api)
+```json
+{
+  "youtube-transcript": "^1.2.1", // For YouTube transcripts
+  "rss-parser": "^3.13.0", // For podcast RSS feeds
+  "axios": "^1.6.0", // For web scraping
+  "cheerio": "^1.0.0-rc.12" // For HTML parsing
+}
+```
+
+### GPT-SoVITS Setup
+- Python 3.8+
+- PyTorch
+- GPT-SoVITS repository: https://github.com/RVC-Boss/GPT-SoVITS
+- Or use hosted service (Replicate, Hugging Face Spaces)
 
 ---
 
@@ -342,59 +326,48 @@ Answer their question naturally in [selected language], then ask if they want to
 
 | Risk | Mitigation |
 |------|------------|
-| Voice API limitations | Start with Web Speech API, fallback to buttons |
-| LLM latency | Show loading states, process chunks incrementally |
-| TTS language support | Map to supported languages, provide fallback to English |
-| Language quality | Test common languages first, validate with native speakers |
-| CORS issues with URLs | Use server-side proxy or CORS extension |
-| API costs | Set rate limits, cache responses |
-| Browser compatibility | Test on Chrome/Firefox/Safari, provide fallbacks |
-| **Author content not found** | Graceful fallback to generic conversational style, show user message |
-| **Author style accuracy** | Use multiple sources, validate with examples, allow user feedback |
-| **Legal/ethical concerns (voice cloning)** | Add disclaimer, use only for educational purposes, respect right of publicity |
-| **Author content copyright** | Use only public domain or publicly available content, respect terms of service |
-| **Free TTS quality** | Start with Web Speech API, upgrade to Coqui/GPT-SoVITS if needed |
+| GPT-SoVITS setup complexity | Start with hosted service (Replicate/Hugging Face), fallback to Web Speech API |
+| Author content not found | Graceful fallback to generic style, show user message |
+| Author style accuracy | Use multiple sources, validate with examples, allow user feedback |
+| Voice cloning quality | Test with various audio samples, provide fallback options |
+| Legal/ethical concerns | Add disclaimer, use only public content, respect copyright |
+| GPT-SoVITS latency | Show loading states, cache audio, use streaming if possible |
+| API costs | Set rate limits, cache responses, use free tiers where possible |
 
 ---
 
-## Success Metrics (Post-MVP)
+## Success Metrics
 
 - [ ] Can explain articles of 500-5000 words reliably
-- [ ] Average response time < 3 seconds per chunk
-- [ ] Voice output quality acceptable (clear, not robotic)
+- [ ] Average response time < 5 seconds per chunk (including style analysis)
+- [ ] Voice output quality acceptable (clear, natural)
 - [ ] Conversation maintains context across 5+ turns
 - [ ] At least 70% of testers prefer this over reading
-- [ ] **Author style feature: At least 60% of users can identify the author from explanation style**
-- [ ] **Author style feature: Users rate style accuracy > 4/5**
+- [ ] **Author style: At least 60% of users can identify the author from explanation style**
+- [ ] **Author style: Users rate style accuracy > 4/5**
 - [ ] **Author content fetching: Success rate > 80% for well-known authors**
+- [ ] **Voice cloning: Users rate voice similarity > 3.5/5**
 
 ---
 
 ## Estimated Timeline
 
-- **Total: 25-26 days** (4 weeks)
-- **Phase 1-3**: Week 1 (Foundation + Core AI)
-- **Phase 4**: Week 2 (Author Style Learning - KEY DIFFERENTIATOR)
-- **Phase 5-6**: Week 2-3 (Voice + Interaction)
-- **Phase 7-8**: Week 3-4 (Polish + Testing)
-- **Phase 9**: Week 4 (Deploy)
+- **Total: 16 days** (3-4 weeks)
+- **Phase 8 (Author Style)**: Days 1-5 (Week 1-2)
+- **Phase 9 (GPT-SoVITS)**: Days 6-10 (Week 2-3)
+- **Phase 10 (Integration)**: Days 11-14 (Week 3-4)
+- **Phase 11 (Deploy)**: Days 15-16 (Week 4)
 
 ---
 
-## Next Steps After MVP Validation
+## Next Steps (Immediate)
 
-If MVP validates the concept:
-1. Add semantic chunking (smarter paragraph grouping)
-2. Real-time voice interruption (WebRTC/advanced STT)
-3. Explanation depth selection
-4. Conversation history/sessions (database)
-5. Mobile app (React Native or PWA)
-6. **Improve author voice cloning** (better TTS integration with author voice samples)
-7. **Author style database** (pre-built profiles for popular authors)
-8. **Multi-author support** (switch between different author styles mid-conversation)
-9. **Style intensity slider** (adjust how strongly to apply author style)
-10. **User feedback loop** (rate style accuracy, improve profiles over time)
+1. **Start with Phase 8.1**: Add author input field to UI
+2. **Set up GPT-SoVITS**: Choose hosting option (Replicate recommended for MVP)
+3. **Implement author search**: Start with YouTube transcripts (easiest)
+4. **Build style analysis**: Use LLM to analyze transcripts
+5. **Integrate everything**: Connect all pieces together
 
 ---
 
-**Start with Phase 1 and iterate quickly. Focus on getting the conversational loop working before adding polish.**
+**Focus**: Get author style feature working first (text-based), then add voice cloning. This allows validation of the core differentiator before investing in complex voice cloning setup.
